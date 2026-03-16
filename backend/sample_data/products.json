@@ -1,0 +1,47 @@
+[
+  {
+    "name": "Organic Basmati Rice 5kg",
+    "description": "Long-grain basmati rice, premium quality.",
+    "price": 1299.0,
+    "stock_quantity": 120,
+    "category": "Grocery",
+    "image_url": "https://example.com/images/basmati-rice.jpg",
+    "barcode": "8901234567890",
+    "location": "Aisle 3 - Shelf B",
+    "rating": 0.0,
+    "reviews_count": 0,
+    "created_at": "2026-02-22T10:00:00Z",
+    "updated_at": "2026-02-22T10:00:00Z",
+    "is_active": true
+  },
+  {
+    "name": "Wireless Earbuds",
+    "description": "Bluetooth 5.3 earbuds with charging case.",
+    "price": 1999.0,
+    "stock_quantity": 45,
+    "category": "Electronics",
+    "image_url": "https://example.com/images/earbuds.jpg",
+    "barcode": "8909876543210",
+    "location": "Aisle 8 - Rack 2",
+    "rating": 0.0,
+    "reviews_count": 0,
+    "created_at": "2026-02-22T10:05:00Z",
+    "updated_at": "2026-02-22T10:05:00Z",
+    "is_active": true
+  },
+  {
+    "name": "Green Tea 100 Bags",
+    "description": "Refreshing green tea bags, 100 count.",
+    "price": 299.0,
+    "stock_quantity": 200,
+    "category": "Beverages",
+    "image_url": "https://example.com/images/green-tea.jpg",
+    "barcode": "8901111222233",
+    "location": "Aisle 2 - Shelf A",
+    "rating": 0.0,
+    "reviews_count": 0,
+    "created_at": "2026-02-22T10:10:00Z",
+    "updated_at": "2026-02-22T10:10:00Z",
+    "is_active": true
+  }
+]
