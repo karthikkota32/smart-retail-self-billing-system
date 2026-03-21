@@ -216,98 +216,52 @@ function Shop() {
 
   return (
     <div
+      className="shop-page"
       style={{
         background: "#eaeded",
         minHeight: "100vh",
-        width: "100%",
-        overflowX: "hidden",
+        width: "100%"
       }}
     >
       <MasterNavbar />
 
-      <div style={{ padding: "15px 15px" }}>
-        <div style={{ display: "grid", gap: "10px" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+      <div className="shop-toolbar">
+        <div className="shop-toolbar-grid">
+          <div className="shop-toolbar-row">
             <input
+              className="shop-search-input"
               placeholder="Search groceries..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{
-                flex: "1 1 220px",
-                width: "100%",
-                padding: "12px",
-                borderRadius: "8px",
-                border: "none",
-                fontSize: "clamp(13px, 4vw, 14px)",
-                boxSizing: "border-box",
-              }}
             />
             <button
+              className="shop-toolbar-btn"
               onClick={() => setSearch("")}
-              style={{
-                background: "white",
-                borderRadius: "8px",
-                border: "1px solid #ddd",
-                padding: "0 12px",
-                cursor: "pointer",
-                fontWeight: "bold",
-                fontSize: "12px",
-              }}
             >
               Clear
             </button>
             <button
+              className="shop-toolbar-btn shop-toolbar-btn-primary"
               onClick={refreshProducts}
               title="Refresh latest stock status from server"
-              style={{
-                background: "#667eea",
-                color: "white",
-                borderRadius: "8px",
-                border: "none",
-                padding: "0 14px",
-                cursor: "pointer",
-                fontWeight: "bold",
-                fontSize: "12px",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
             >
               🔄 Refresh
             </button>
             <button
+              className="shop-toolbar-btn shop-toolbar-btn-secondary"
               onClick={() => setShowFilters(true)}
-              style={{
-                background: "#8b5cf6",
-                color: "white",
-                borderRadius: "8px",
-                border: "none",
-                padding: "0 14px",
-                cursor: "pointer",
-                fontWeight: "bold",
-                fontSize: "12px",
-              }}
             >
               Filters
             </button>
             <button
+              className="shop-toolbar-btn shop-toolbar-btn-warning"
               onClick={() => setShowHelp(true)}
-              style={{
-                background: "#f59e0b",
-                color: "white",
-                borderRadius: "8px",
-                border: "none",
-                padding: "0 14px",
-                cursor: "pointer",
-                fontWeight: "bold",
-                fontSize: "12px",
-              }}
             >
               Help
             </button>
           </div>
         </div>
-        <p style={{ marginTop: "10px", fontSize: "clamp(13px, 4vw, 14px)" }}>
+        <p className="shop-summary">
           🛒 Cart ({cart.length}) | Showing {sortedProducts.length} items
         </p>
       </div>
@@ -355,17 +309,7 @@ function Shop() {
               ✕ Clear
             </button>
           </div>
-          <div
-            style={{
-              display: "grid",
-              gridAutoFlow: "column",
-              gridAutoColumns: "minmax(150px, 1fr)",
-              gap: "12px",
-              overflowX: "auto",
-              paddingBottom: "8px",
-              scrollBehavior: "smooth",
-            }}
-          >
+          <div className="recently-viewed-grid-mobile">
             {recentlyViewed.map((item) => (
               <div
                 key={`recent-${item.id}`}
