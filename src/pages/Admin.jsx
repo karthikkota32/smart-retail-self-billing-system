@@ -5,6 +5,7 @@ import ProductList from "../components/ProductList";
 import UserManagement from "../components/UserManagement";
 import CouponManagement from "../components/CouponManagement";
 import { useAdminProducts } from "../hooks/useAdminProducts";
+import { getAdminDashboardStats } from "../services/api";
 
 function Admin() {
   const {
@@ -17,19 +18,38 @@ function Admin() {
 
   const [editingProduct, setEditingProduct] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [orders, setOrders] = useState([]);
+  const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
   const [activeTab, setActiveTab] = useState("products"); // "products", "users", or "coupons"
 
-  // Load orders
+  // Load live admin stats from backend (MongoDB-backed)
   useEffect(() => {
-    const loadOrders = () => {
-      const updated = JSON.parse(localStorage.getItem("history")) || [];
-      setOrders(updated);
+    let isMounted = true;
+
+    const loadStats = async () => {
+      try {
+        const response = await getAdminDashboardStats();
+        if (!isMounted || !response?.success || !response?.stats) {
+          return;
+        }
+
+        setStats({
+          totalOrders: Number(response.stats.total_orders) || 0,
+          totalRevenue: Number(response.stats.total_revenue) || 0,
+        });
+      } catch (error) {
+        console.error("Failed to load admin dashboard stats", error);
+      }
     };
-    loadOrders();
-    window.addEventListener("appUpdate", loadOrders);
+
+    loadStats();
+
+    const refreshInterval = setInterval(loadStats, 8000);
+    window.addEventListener("appUpdate", loadStats);
+
     return () => {
-      window.removeEventListener("appUpdate", loadOrders);
+      isMounted = false;
+      clearInterval(refreshInterval);
+      window.removeEventListener("appUpdate", loadStats);
     };
   }, []);
 
@@ -58,8 +78,6 @@ function Admin() {
     await refreshProducts();
     window.dispatchEvent(new Event("appUpdate"));
   };
-
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.total || o.totalAmount || 0), 0);
 
   return (
     <div style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", minHeight: "100vh" }}>
@@ -162,11 +180,11 @@ function Admin() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginBottom: "30px" }}>
                 <div style={{ background: "white", padding: "25px", borderRadius: "15px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)", textAlign: "center", borderTop: "4px solid #667eea" }}>
                   <p style={{ fontSize: "12px", color: "#999", fontWeight: "bold", margin: "0 0 10px 0" }}>TOTAL ORDERS</p>
-                  <p style={{ fontSize: "32px", fontWeight: "bold", color: "#667eea", margin: "0" }}>{orders.length}</p>
+                  <p style={{ fontSize: "32px", fontWeight: "bold", color: "#667eea", margin: "0" }}>{stats.totalOrders}</p>
                 </div>
                 <div style={{ background: "white", padding: "25px", borderRadius: "15px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)", textAlign: "center", borderTop: "4px solid #25ae60" }}>
                   <p style={{ fontSize: "12px", color: "#999", fontWeight: "bold", margin: "0 0 10px 0" }}>TOTAL REVENUE</p>
-                  <p style={{ fontSize: "32px", fontWeight: "bold", color: "#27ae60", margin: "0" }}>₹{totalRevenue.toFixed(2)}</p>
+                  <p style={{ fontSize: "32px", fontWeight: "bold", color: "#27ae60", margin: "0" }}>₹{stats.totalRevenue.toFixed(2)}</p>
                 </div>
                 <div style={{ background: "white", padding: "25px", borderRadius: "15px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)", textAlign: "center", borderTop: "4px solid #ffc107" }}>
                   <p style={{ fontSize: "12px", color: "#999", fontWeight: "bold", margin: "0 0 10px 0" }}>TOTAL PRODUCTS</p>
