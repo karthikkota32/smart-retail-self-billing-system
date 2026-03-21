@@ -1,5 +1,5 @@
 const configuredApiBase = (import.meta.env.VITE_API_BASE || "").trim().replace(/\/+$/, "");
-const API_BASE = configuredApiBase || (import.meta.env.DEV ? "http://localhost:5000" : "");
+const API_BASE = configuredApiBase || "https://smart-retail-self-billing-system.onrender.com";
 
 // Auth endpoints
 export const registerUser = async (username, name, phone, email, password) => {

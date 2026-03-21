@@ -229,6 +229,11 @@ def health_check():
     return jsonify({"status": "ok"})
 
 
+@app.get("/")
+def home():
+    return "Backend is running"
+
+
 @app.post("/auth/register")
 def register():
     payload = request.get_json(silent=True) or {}
@@ -296,28 +301,33 @@ def login():
 
 @app.get("/products")
 def get_products():
-    """Fetch all products from database"""
-    conn = _get_db()
-    products = conn.execute("SELECT * FROM products ORDER BY created_at DESC").fetchall()
-    conn.close()
-    
-    result = []
-    for p in products:
-        result.append({
-            "id": p["id"],
-            "name": p["name"],
-            "price": p["price"],
-            "location": p["location"],
-            "category": p["category"],
-            "image": p["image"],
-            "backImage": p["backImage"],
-            "description": p["description"],
-            "stock": p["stock"],
-            "reviews": json.loads(p["reviews"]) if p["reviews"] else [],
-            "createdAt": p["created_at"],
-        })
-    
-    return jsonify({"ok": True, "products": result})
+    """Fetch all products from MongoDB (without _id), with SQLite fallback."""
+    try:
+        products_col = MongoDBCollections.get_collection("products")
+        products = list(products_col.find({}, {"_id": 0}))
+        return jsonify(products)
+    except Exception:
+        conn = _get_db()
+        products = conn.execute("SELECT * FROM products ORDER BY created_at DESC").fetchall()
+        conn.close()
+
+        result = []
+        for p in products:
+            result.append({
+                "id": p["id"],
+                "name": p["name"],
+                "price": p["price"],
+                "location": p["location"],
+                "category": p["category"],
+                "image": p["image"],
+                "backImage": p["backImage"],
+                "description": p["description"],
+                "stock": p["stock"],
+                "reviews": json.loads(p["reviews"]) if p["reviews"] else [],
+                "createdAt": p["created_at"],
+            })
+
+        return jsonify(result)
 
 
 @app.get("/products/search")
@@ -1866,6 +1876,65 @@ def create_product_mongo():
             "product_id": str(result.inserted_id)
         }), 201
         
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.post("/api/mongo/products/seed")
+def seed_products_mongo():
+    """Seed MongoDB products from backend/sample_data/products.json."""
+    try:
+        products_col = MongoDBCollections.get_collection("products")
+
+        existing_count = products_col.count_documents({})
+        force_seed = str(request.args.get("force", "0")).lower() in {"1", "true", "yes"}
+
+        if existing_count > 0 and not force_seed:
+            return jsonify({
+                "success": False,
+                "message": "Products already exist. Use ?force=1 to seed anyway.",
+                "count": existing_count,
+            }), 409
+
+        sample_path = Path(__file__).with_name("sample_data") / "products.json"
+        if not sample_path.exists():
+            return jsonify({"success": False, "message": "Sample products file not found"}), 404
+
+        with open(sample_path, "r", encoding="utf-8") as f:
+            sample_products = json.load(f)
+
+        prepared_products = []
+        for p in sample_products:
+            doc = {
+                "name": p.get("name", "Unnamed Product"),
+                "description": p.get("description", ""),
+                "price": float(p.get("price", 0)),
+                "stock_quantity": int(p.get("stock_quantity", 0)),
+                "category": p.get("category", "General"),
+                "image_url": p.get("image_url", ""),
+                "barcode": p.get("barcode", ""),
+                "location": p.get("location", ""),
+                "rating": float(p.get("rating", 0.0)),
+                "reviews_count": int(p.get("reviews_count", 0)),
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
+                "is_active": bool(p.get("is_active", True)),
+            }
+            prepared_products.append(doc)
+
+        if force_seed:
+            products_col.delete_many({})
+
+        if prepared_products:
+            result = products_col.insert_many(prepared_products)
+            return jsonify({
+                "success": True,
+                "message": f"Seeded {len(result.inserted_ids)} MongoDB products",
+                "count": len(result.inserted_ids),
+            }), 201
+
+        return jsonify({"success": False, "message": "No products to seed"}), 400
+
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 

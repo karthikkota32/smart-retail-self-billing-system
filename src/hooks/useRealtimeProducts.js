@@ -12,7 +12,7 @@ export const useRealtimeProducts = (pollIntervalMs = 5000) => {
   const isMountedRef = useRef(true);
 
   const configuredApiBase = (import.meta.env.VITE_API_BASE || "").trim().replace(/\/+$/, "");
-  const apiBase = configuredApiBase || (import.meta.env.DEV ? "http://localhost:5000" : "");
+  const apiBase = configuredApiBase || "https://smart-retail-self-billing-system.onrender.com";
 
   /**
    * Fetch fresh product data from backend
