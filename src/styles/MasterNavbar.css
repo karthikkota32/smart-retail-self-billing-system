@@ -54,6 +54,10 @@
 @media (max-width: 768px) {
   .menu-toggle {
     display: block;
+    z-index: 130;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.14);
   }
 }
 
@@ -69,22 +73,38 @@
 }
 
 @media (max-width: 768px) {
+  .navbar-container {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
   .navbar-menu {
     position: absolute;
     top: 100%;
     left: 0;
     right: 0;
-    background: rgba(102, 126, 234, 0.95);
+    background: rgba(58, 74, 168, 0.96);
+    backdrop-filter: blur(8px);
     flex-direction: column;
     gap: 10px;
-    padding: 20px;
+    padding: 0 18px;
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-6px);
+    transition: max-height 0.25s ease, opacity 0.25s ease, transform 0.25s ease, padding 0.25s ease;
+    box-shadow: 0 16px 28px rgba(0, 0, 0, 0.22);
+    z-index: 120;
   }
 
   .navbar-menu.active {
-    max-height: 500px;
+    max-height: 75vh;
+    overflow-y: auto;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+    padding: 14px 18px 18px;
   }
 }
 
@@ -101,7 +121,14 @@
   .nav-links {
     flex-direction: column;
     width: 100%;
-    gap: 10px;
+    gap: 8px;
+  }
+
+  .nav-link {
+    width: 100%;
+    text-align: left;
+    padding: 9px 12px;
+    font-size: 15px;
   }
 }
 
@@ -136,8 +163,9 @@
 @media (max-width: 768px) {
   .navbar-actions {
     width: 100%;
-    justify-content: center;
+    justify-content: stretch;
     flex-direction: column;
+    gap: 8px;
   }
 }
 
@@ -184,6 +212,17 @@
   padding: 0;
 }
 
+@media (max-width: 768px) {
+  .navbar-right {
+    margin-left: auto;
+    gap: 8px;
+  }
+
+  .navbar-brand {
+    font-size: 17px;
+  }
+}
+
 .cart-btn {
   background: rgba(255, 255, 255, 0.2);
   border: 2px solid white;
@@ -209,4 +248,15 @@
   text-overflow: ellipsis;
   margin: 0;
   padding: 0;
+}
+
+@media (max-width: 600px) {
+  .user-info {
+    display: none;
+  }
+
+  .cart-btn {
+    padding: 6px 10px;
+    min-width: 64px;
+  }
 }

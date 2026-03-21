@@ -126,8 +126,12 @@
 
 @media (max-width: 479px) {
   .product-image-container {
-    height: 150px;
+    height: 170px;
     margin-bottom: 12px;
+  }
+
+  .product-image {
+    padding: 10px;
   }
 }
 
@@ -181,8 +185,11 @@
 
 @media (max-width: 479px) {
   .product-title {
-    font-size: 13px;
-    min-height: 28px;
+    font-size: 15px;
+    line-height: 1.35;
+    min-height: 40px;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
 }
 
@@ -205,6 +212,7 @@
 @media (max-width: 479px) {
   .product-price {
     font-size: 15px;
+    line-height: 1.2;
   }
 }
 

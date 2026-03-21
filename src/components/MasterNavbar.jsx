@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { readCartItems } from "../utils/cartUtils";
 import "../styles/MasterNavbar.css";
 
@@ -14,6 +14,7 @@ function MasterNavbar(){
   });
 
   const [showMenu, setShowMenu] = useState(false);
+  const navRef = useRef(null);
 
   const loadCart = () => {
     const userPhone = localStorage.getItem("userPhone") || "guest";
@@ -25,6 +26,22 @@ function MasterNavbar(){
     window.addEventListener("appUpdate",loadCart);
     return ()=>window.removeEventListener("appUpdate",loadCart);
   },[]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (showMenu && navRef.current && !navRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+    };
+  }, [showMenu]);
 
   const logout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
@@ -47,7 +64,7 @@ function MasterNavbar(){
   };
 
   return(
-    <nav className="master-navbar">
+    <nav className="master-navbar" ref={navRef}>
       <div className="navbar-container">
         <div className="navbar-brand" onClick={() => handleNavClick("/dashboard")}>
           <span className="logo">🛒 SmartRetail</span>

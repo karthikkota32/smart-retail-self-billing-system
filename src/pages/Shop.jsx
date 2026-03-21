@@ -7,6 +7,8 @@ import CartNotification from "../components/CartNotification";
 import { readCartItems, addItemToCart, normalizeProductId } from "../utils/cartUtils";
 import "./Shop.css";
 
+const FALLBACK_PRODUCT_IMAGE = "https://placehold.co/600x600/e5e7eb/6b7280?text=No+Image";
+
 function Shop() {
   const navigate = useNavigate();
 
@@ -403,6 +405,10 @@ function Shop() {
                       <img
                         src={item.image}
                         alt={item.name}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
+                        }}
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       />
                     )}
@@ -460,6 +466,10 @@ function Shop() {
                         src={item.image}
                         alt={item.name}
                         className="product-image"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
+                        }}
                       />
                       <StockIndicator product={item} />
                       {item.averageRating && (
@@ -578,6 +588,10 @@ function Shop() {
                 <img
                   src={quickViewItem.image}
                   alt={quickViewItem.name}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
+                  }}
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
                 <StockIndicator product={quickViewItem} />

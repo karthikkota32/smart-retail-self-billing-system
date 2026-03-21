@@ -1880,7 +1880,7 @@ def create_product_mongo():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
-@app.post("/api/mongo/products/seed")
+@app.route("/api/mongo/products/seed", methods=["GET", "POST"])
 def seed_products_mongo():
     """Seed MongoDB products from backend/sample_data/products.json."""
     try:
@@ -1926,11 +1926,10 @@ def seed_products_mongo():
             products_col.delete_many({})
 
         if prepared_products:
-            result = products_col.insert_many(prepared_products)
+            products_col.insert_many(prepared_products)
             return jsonify({
                 "success": True,
-                "message": f"Seeded {len(result.inserted_ids)} MongoDB products",
-                "count": len(result.inserted_ids),
+                "message": "Products seeded successfully"
             }), 201
 
         return jsonify({"success": False, "message": "No products to seed"}), 400
