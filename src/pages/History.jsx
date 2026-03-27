@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MasterNavbar from "../components/MasterNavbar";
+import { getOrders } from "../services/api";
 import "../styles/History.css";
 
 function History() {
@@ -16,15 +17,22 @@ function History() {
       return;
     }
 
-    // Load orders from localStorage
-    const loadOrders = () => {
+    // Load orders from backend; fallback to localStorage for resilience.
+    const loadOrders = async () => {
       try {
+        const res = await getOrders(userPhone);
+        if (res?.ok && Array.isArray(res.orders)) {
+          setOrders(res.orders);
+          localStorage.setItem(`history_${userPhone}`, JSON.stringify(res.orders));
+          return;
+        }
+
         const savedOrders = JSON.parse(localStorage.getItem(`history_${userPhone}`)) || [];
-        console.log("Loaded orders from localStorage:", savedOrders);
         setOrders(savedOrders);
       } catch (error) {
         console.error("Error loading orders:", error);
-        setOrders([]);
+        const savedOrders = JSON.parse(localStorage.getItem(`history_${userPhone}`)) || [];
+        setOrders(savedOrders);
       } finally {
         setLoading(false);
       }
@@ -136,7 +144,12 @@ function History() {
                       <div key={idx} className="item-row">
                         <div className="item-info">
                           <p className="item-name">{item.name || "Product"}</p>
-                          <p className="item-details">₹{item.price} × {item.quantity}</p>
+                          <p className="item-details">
+                            ₹{item.price} × {item.quantity} {item.is_loose_item ? (item.unit_type || "unit") : ""}
+                          </p>
+                          {item.is_loose_item && (
+                            <p className="item-details">Rate: ₹{Number(item.price_per_unit ?? item.price).toFixed(2)}/{item.unit_type || "unit"}</p>
+                          )}
                         </div>
                         <p className="item-subtotal">₹{(item.price * item.quantity).toFixed(2)}</p>
                       </div>

@@ -6,6 +6,9 @@ function ProductForm({ product, onSubmit, onCancel }) {
     name: "",
     description: "",
     price: "",
+    price_per_unit: "",
+    unit_type: "unit",
+    is_loose_item: false,
     stock_quantity: "",
     category: "",
     image_url: "",
@@ -23,6 +26,9 @@ function ProductForm({ product, onSubmit, onCancel }) {
         name: product.name || "",
         description: product.description || "",
         price: product.price || "",
+        price_per_unit: product.price_per_unit || product.price || "",
+        unit_type: product.unit_type || "unit",
+        is_loose_item: Boolean(product.is_loose_item),
         stock_quantity: product.stock_quantity || "",
         category: product.category || "",
         image_url: product.image_url || "",
@@ -34,10 +40,10 @@ function ProductForm({ product, onSubmit, onCancel }) {
   }, [product]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
@@ -84,6 +90,10 @@ function ProductForm({ product, onSubmit, onCancel }) {
       setError("Price must be greater than 0");
       return false;
     }
+    if (formData.is_loose_item && !["kg", "g", "litre"].includes(formData.unit_type)) {
+      setError("Select a valid unit type for loose items");
+      return false;
+    }
     if (!formData.category.trim()) {
       setError("Category is required");
       return false;
@@ -102,7 +112,10 @@ function ProductForm({ product, onSubmit, onCancel }) {
       const payload = {
         ...formData,
         price: parseFloat(formData.price),
-        stock_quantity: parseInt(formData.stock_quantity) || 0,
+        price_per_unit: parseFloat(formData.price_per_unit || formData.price),
+        unit_type: formData.is_loose_item ? formData.unit_type : "unit",
+        is_loose_item: Boolean(formData.is_loose_item),
+        stock_quantity: parseFloat(formData.stock_quantity) || 0,
       };
 
       if (product) {
@@ -112,6 +125,9 @@ function ProductForm({ product, onSubmit, onCancel }) {
             name: "",
             description: "",
             price: "",
+            price_per_unit: "",
+            unit_type: "unit",
+            is_loose_item: false,
             stock_quantity: "",
             category: "",
             image_url: "",
@@ -128,6 +144,9 @@ function ProductForm({ product, onSubmit, onCancel }) {
             name: "",
             description: "",
             price: "",
+            price_per_unit: "",
+            unit_type: "unit",
+            is_loose_item: false,
             stock_quantity: "",
             category: "",
             image_url: "",
@@ -191,6 +210,20 @@ function ProductForm({ product, onSubmit, onCancel }) {
           </div>
 
           <div style={styles.formGroup}>
+            <label>Price Per Unit (₹)</label>
+            <input
+              type="number"
+              name="price_per_unit"
+              value={formData.price_per_unit}
+              onChange={handleChange}
+              placeholder="Auto = Price"
+              step="0.01"
+              min="0"
+              style={styles.input}
+            />
+          </div>
+
+          <div style={styles.formGroup}>
             <label>Stock Quantity</label>
             <input
               type="number"
@@ -199,8 +232,39 @@ function ProductForm({ product, onSubmit, onCancel }) {
               onChange={handleChange}
               placeholder="Enter stock"
               min="0"
+              step={formData.is_loose_item ? "0.1" : "1"}
               style={styles.input}
             />
+          </div>
+        </div>
+
+        <div style={styles.row}>
+          <div style={styles.formGroup}>
+            <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <input
+                type="checkbox"
+                name="is_loose_item"
+                checked={formData.is_loose_item}
+                onChange={handleChange}
+              />
+              Loose Item (quantity-based)
+            </label>
+          </div>
+
+          <div style={styles.formGroup}>
+            <label>Unit Type</label>
+            <select
+              name="unit_type"
+              value={formData.unit_type}
+              onChange={handleChange}
+              style={styles.input}
+              disabled={!formData.is_loose_item}
+            >
+              <option value="unit">unit</option>
+              <option value="kg">kg</option>
+              <option value="g">g</option>
+              <option value="litre">litre</option>
+            </select>
           </div>
         </div>
 

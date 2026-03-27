@@ -758,13 +758,50 @@ def create_order():
     
     conn = _get_db()
     products_col = MongoDBCollections.get_collection("products")
+
+    def _product_id_candidates(raw_product_id):
+        """Build possible id representations used across SQLite/Mongo documents."""
+        candidates = []
+        if raw_product_id is None:
+            return candidates
+
+        candidates.append(raw_product_id)
+
+        if isinstance(raw_product_id, str):
+            trimmed = raw_product_id.strip()
+            if trimmed and trimmed not in candidates:
+                candidates.append(trimmed)
+            if trimmed.isdigit():
+                numeric = int(trimmed)
+                if numeric not in candidates:
+                    candidates.append(numeric)
+            try:
+                oid = ObjectId(trimmed)
+                if oid not in candidates:
+                    candidates.append(oid)
+            except Exception:
+                pass
+        elif isinstance(raw_product_id, (int, float)):
+            numeric = int(raw_product_id)
+            if numeric not in candidates:
+                candidates.append(numeric)
+            as_str = str(numeric)
+            if as_str not in candidates:
+                candidates.append(as_str)
+
+        return candidates
     
     # Enrich items with product details for email
     items_with_details = []
     for item in items:
         # Try to find product by id or product_id field
         product_id = item.get("product_id") or item.get("id")
-        product = conn.execute("SELECT id, name, price FROM products WHERE id = ?", (product_id,)).fetchone()
+        product = None
+        for candidate in _product_id_candidates(product_id):
+            if isinstance(candidate, int):
+                product = conn.execute("SELECT id, name, price FROM products WHERE id = ?", (candidate,)).fetchone()
+                if product:
+                    break
         
         # Use price from database if found, otherwise use price from item (fallback)
         price = product["price"] if product else item.get("price", 0)
@@ -773,15 +810,25 @@ def create_order():
             "product_id": product_id,
             "name": product["name"] if product else item.get("name", "Product"),
             "price": float(price),
-            "quantity": item.get("quantity", 1)
+            "price_per_unit": float(item.get("price_per_unit", price)),
+            "unit_type": str(item.get("unit_type", "unit") or "unit"),
+            "is_loose_item": bool(item.get("is_loose_item", False)),
+            "quantity": max(0.001, float(item.get("quantity", 1) or 1))
         })
     
     # Check stock availability in MongoDB before creating order
     for item in items_with_details:
         try:
-            mongo_product = products_col.find_one({"id": item["product_id"]})
+            mongo_product = None
+            for candidate in _product_id_candidates(item["product_id"]):
+                if isinstance(candidate, ObjectId):
+                    mongo_product = products_col.find_one({"_id": candidate})
+                else:
+                    mongo_product = products_col.find_one({"id": candidate})
+                if mongo_product:
+                    break
             if mongo_product:
-                current_stock = mongo_product.get("stock_quantity", 0)
+                current_stock = float(mongo_product.get("stock_quantity", 0) or 0)
                 if current_stock < item["quantity"]:
                     conn.close()
                     return jsonify({
@@ -802,22 +849,35 @@ def create_order():
     # Deduct stock from MongoDB products
     for item in items_with_details:
         try:
-            # Decrement stock quantity in MongoDB
-            result = products_col.update_one(
-                {"id": item["product_id"]},
-                {
-                    "$inc": {"stock_quantity": -item["quantity"]},
-                    "$set": {"updated_at": datetime.now()}
-                }
-            )
-            if result.modified_count > 0:
+            # Decrement stock quantity in MongoDB, handling multiple id formats.
+            result = None
+            for candidate in _product_id_candidates(item["product_id"]):
+                query = {"_id": candidate} if isinstance(candidate, ObjectId) else {"id": candidate}
+                result = products_col.update_one(
+                    query,
+                    {
+                        "$inc": {"stock_quantity": -item["quantity"]},
+                        "$set": {"updated_at": datetime.now()}
+                    }
+                )
+                if result.modified_count > 0:
+                    break
+            if result and result.modified_count > 0:
                 print(f"✓ Stock updated for product {item['product_id']}: -{item['quantity']}")
             
             # Also update SQLite for consistency
-            conn.execute(
-                "UPDATE products SET stock = stock - ? WHERE id = ?",
-                (item["quantity"], item["product_id"])
-            )
+            sqlite_updated = False
+            for candidate in _product_id_candidates(item["product_id"]):
+                if isinstance(candidate, int):
+                    update_result = conn.execute(
+                        "UPDATE products SET stock = stock - ? WHERE id = ?",
+                        (item["quantity"], candidate)
+                    )
+                    if update_result.rowcount > 0:
+                        sqlite_updated = True
+                        break
+            if not sqlite_updated:
+                print(f"Warning: SQLite stock update skipped for product {item['product_id']}")
             conn.commit()
         except Exception as e:
             print(f"Warning: Could not update stock for product {item['product_id']}: {e}")
@@ -1856,7 +1916,10 @@ def create_product_mongo():
             "name": data.get("name"),
             "description": data.get("description", ""),
             "price": float(data.get("price")),
-            "stock_quantity": int(data.get("stock_quantity", 0)),
+            "price_per_unit": float(data.get("price_per_unit", data.get("price", 0))),
+            "unit_type": str(data.get("unit_type", "unit")).strip() or "unit",
+            "is_loose_item": bool(data.get("is_loose_item", False)),
+            "stock_quantity": float(data.get("stock_quantity", 0)),
             "category": data.get("category", ""),
             "image_url": data.get("image_url", ""),
             "barcode": data.get("barcode", ""),
@@ -1909,7 +1972,10 @@ def seed_products_mongo():
                 "name": p.get("name", "Unnamed Product"),
                 "description": p.get("description", ""),
                 "price": float(p.get("price", 0)),
-                "stock_quantity": int(p.get("stock_quantity", 0)),
+                "price_per_unit": float(p.get("price_per_unit", p.get("price", 0))),
+                "unit_type": str(p.get("unit_type", "unit")),
+                "is_loose_item": bool(p.get("is_loose_item", False)),
+                "stock_quantity": float(p.get("stock_quantity", 0)),
                 "category": p.get("category", "General"),
                 "image_url": p.get("image_url", ""),
                 "barcode": p.get("barcode", ""),
@@ -2003,7 +2069,7 @@ def update_product_mongo(product_id):
         }
         
         # Update only provided fields
-        for field in ["name", "description", "price", "stock_quantity", "category", "image_url", "barcode", "location"]:
+        for field in ["name", "description", "price", "price_per_unit", "stock_quantity", "category", "image_url", "barcode", "location", "unit_type", "is_loose_item"]:
             if field in data:
                 update_data[field] = data[field]
         
@@ -2177,7 +2243,7 @@ def create_order_mongo():
         # Check stock availability before creating order
         for item in items:
             product_id = item.get("product_id") or item.get("id")
-            quantity = item.get("quantity", 1)
+            quantity = float(item.get("quantity", 1) or 1)
             
             # Try to find product by MongoDB _id or integer id
             try:
@@ -2186,7 +2252,7 @@ def create_order_mongo():
                 mongo_product = products_col.find_one({"id": product_id})
             
             if mongo_product:
-                current_stock = mongo_product.get("stock_quantity", 0)
+                current_stock = float(mongo_product.get("stock_quantity", 0) or 0)
                 if current_stock < quantity:
                     return jsonify({
                         "ok": False,
@@ -2212,7 +2278,7 @@ def create_order_mongo():
         # Deduct stock from MongoDB products
         for item in items:
             product_id = item.get("product_id") or item.get("id")
-            quantity = item.get("quantity", 1)
+            quantity = float(item.get("quantity", 1) or 1)
             
             try:
                 # Try both _id and id fields

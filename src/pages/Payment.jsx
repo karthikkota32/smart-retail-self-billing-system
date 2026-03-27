@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import MasterNavbar from "../components/MasterNavbar";
-import { createOrderMongo, validateCoupon } from "../services/api";
+import { createOrder, validateCoupon } from "../services/api";
 import CartNotification from "../components/CartNotification";
 import "../styles/Payment.css";
 
@@ -83,9 +83,12 @@ function Payment() {
           name: item.name,
           price: item.price,
           quantity: item.quantity || 1,
+          unit_type: item.unit_type || "unit",
+          is_loose_item: Boolean(item.is_loose_item),
+          price_per_unit: Number(item.price_per_unit ?? item.price) || 0,
           product_id: item.product_id || item.id
         })),
-        totalAmount: total,
+        total: total,
         paymentMode: paymentMode
       };
 
@@ -97,7 +100,7 @@ function Payment() {
         return;
       }
 
-      const res = await createOrderMongo(username, orderData.items, total, paymentMode, {});
+      const res = await createOrder(orderData.phone, orderData.items, orderData.total, orderData.paymentMode);
       
       if (res.ok) {
         // Clear cart first
@@ -162,7 +165,12 @@ function Payment() {
                 <div key={idx} className="cart-item">
                   <div className="item-details">
                     <p className="item-name">{item.name}</p>
-                    <p className="item-qty">Qty: {item.quantity || 1}</p>
+                    <p className="item-qty">
+                      Qty: {item.quantity || 1} {item.is_loose_item ? (item.unit_type || "unit") : ""}
+                    </p>
+                    {item.is_loose_item && (
+                      <p className="item-qty">Rate: ₹{Number(item.price_per_unit ?? item.price).toFixed(2)}/{item.unit_type || "unit"}</p>
+                    )}
                   </div>
                   <p className="item-price">₹{(item.price * (item.quantity || 1)).toFixed(2)}</p>
                 </div>

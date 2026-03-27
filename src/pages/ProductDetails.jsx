@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import MasterNavbar from "../components/MasterNavbar";
 import { getProduct, getProductRating, getProductReviews, addProductReview, addToWishlist, removeFromWishlist } from "../services/api";
 import CartNotification from "../components/CartNotification";
-import { readCartItems, addItemToCart } from "../utils/cartUtils";
+import { readCartItems, addItemToCart, getQuantityStep, sanitizeQuantity } from "../utils/cartUtils";
 import "../styles/ProductDetails.css";
 
 function ProductDetails() {
@@ -56,6 +56,12 @@ function ProductDetails() {
     loadData();
   }, [id, userPhone]);
 
+  useEffect(() => {
+    if (product?.is_loose_item) {
+      setQuantity(getQuantityStep(product.unit_type || "unit"));
+    }
+  }, [product]);
+
   // Listen for cart updates from other pages
   useEffect(() => {
     const handleCartUpdate = () => {
@@ -70,15 +76,19 @@ function ProductDetails() {
   const addToCart = () => {
     if (!product) return;
 
-    const result = addItemToCart(product, quantity, userPhone);
+    const isLooseItem = Boolean(product.is_loose_item);
+    const unitType = product.unit_type || "unit";
+    const normalizedQuantity = sanitizeQuantity(quantity, isLooseItem, unitType);
+
+    const result = addItemToCart(product, normalizedQuantity, userPhone);
     if (!result.ok) return;
 
     setCart(result.items);
     window.dispatchEvent(new Event("appUpdate"));
-    setNotificationMessage(`Added ${quantity} × ${product.name} to cart!`);
+    setNotificationMessage(`Added ${normalizedQuantity} ${isLooseItem ? unitType : "item(s)"} of ${product.name} to cart!`);
     setNotificationType("success");
     setShowNotification(true);
-    setQuantity(1);
+    setQuantity(isLooseItem ? getQuantityStep(unitType) : 1);
   };
 
   const toggleWishlist = async () => {
@@ -171,6 +181,11 @@ function ProductDetails() {
 
             <div className="price-section">
               <span className="price">₹{product.price}</span>
+              {product.is_loose_item && (
+                <p style={{ margin: "6px 0 0 0", color: "#4b5563", fontWeight: "600" }}>
+                  ₹{Number(product.price_per_unit ?? product.price).toFixed(2)}/{product.unit_type || "unit"}
+                </p>
+              )}
             </div>
 
             <div className="description-section">
@@ -187,9 +202,50 @@ function ProductDetails() {
 
             <div className="purchase-section">
               <div className="quantity-selector">
-                <button onClick={() => setQuantity(Math.max(1, quantity - 1))}>−</button>
-                <input type="number" value={quantity} readOnly />
-                <button onClick={() => setQuantity(quantity + 1)}>+</button>
+                <button
+                  onClick={() =>
+                    setQuantity(
+                      sanitizeQuantity(
+                        quantity - (product.is_loose_item ? getQuantityStep(product.unit_type || "unit") : 1),
+                        Boolean(product.is_loose_item),
+                        product.unit_type || "unit"
+                      )
+                    )
+                  }
+                >
+                  −
+                </button>
+                <input
+                  type="number"
+                  value={quantity}
+                  min={product.is_loose_item ? getQuantityStep(product.unit_type || "unit") : 1}
+                  step={product.is_loose_item ? getQuantityStep(product.unit_type || "unit") : 1}
+                  onChange={(e) =>
+                    setQuantity(
+                      sanitizeQuantity(
+                        e.target.value,
+                        Boolean(product.is_loose_item),
+                        product.unit_type || "unit"
+                      )
+                    )
+                  }
+                />
+                <button
+                  onClick={() =>
+                    setQuantity(
+                      sanitizeQuantity(
+                        quantity + (product.is_loose_item ? getQuantityStep(product.unit_type || "unit") : 1),
+                        Boolean(product.is_loose_item),
+                        product.unit_type || "unit"
+                      )
+                    )
+                  }
+                >
+                  +
+                </button>
+                {product.is_loose_item && (
+                  <span style={{ marginLeft: "8px", fontWeight: "600", color: "#4b5563" }}>{product.unit_type || "unit"}</span>
+                )}
               </div>
 
               <button

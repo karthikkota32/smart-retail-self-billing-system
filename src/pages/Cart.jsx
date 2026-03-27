@@ -2,7 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import MasterNavbar from "../components/MasterNavbar";
 import CartNotification from "../components/CartNotification";
-import { readCartItems, writeCartItems } from "../utils/cartUtils";
+import { readCartItems, writeCartItems, getQuantityStep, sanitizeQuantity } from "../utils/cartUtils";
+import { createOrder } from "../services/api";
 
 function createBillId() {
   return Date.now();
@@ -42,9 +43,10 @@ function Cart() {
 
 
   const updateQuantity = (index, qty) => {
-    if (qty < 1) return;
     const updated = [...items];
-    updated[index].quantity = qty;
+    const item = updated[index];
+    const isLoose = Boolean(item.is_loose_item);
+    updated[index].quantity = sanitizeQuantity(qty, isLoose, item.unit_type || "unit");
     const saved = writeCartItems(updated, userPhone);
     setItems(saved);
     window.dispatchEvent(new Event("appUpdate"));
@@ -74,31 +76,63 @@ function Cart() {
     setShowNotification(true);
   };
 
-  const generateBill = () => {
-    const userPhone = localStorage.getItem("userPhone") || "guest";
-    const history = JSON.parse(localStorage.getItem(`history_${userPhone}`)) || [];
-    const newBill = {
-      id: createBillId(),
-      total: finalPrice,
-      originalTotal: totalPrice,
-      discountAmount: discountAmount,
-      appliedCoupons: appliedCoupons,
-      items: items,
-      mode: "Offline Cash",
-      date: new Date().toLocaleDateString(),
-      status: "Order Placed",
-      statusUpdatedAt: new Date().toISOString(),
-    };
+  const generateBill = async () => {
+    if (items.length === 0) {
+      setNotificationMessage("Your cart is empty");
+      setNotificationType("error");
+      setShowNotification(true);
+      return;
+    }
 
-    localStorage.setItem(`history_${userPhone}`, JSON.stringify([...history, newBill]));
-    localStorage.removeItem(`cart_${userPhone}`);
-    localStorage.removeItem(`appliedCoupons_${userPhone}`);
-    
-    // Dispatch update event
-    window.dispatchEvent(new Event("appUpdate"));
-    
-    // Navigate immediately without blocking alert
-    navigate("/history");
+    const userPhone = localStorage.getItem("userPhone") || "guest";
+    try {
+      const orderItems = items.map((item) => ({
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity || 1,
+        unit_type: item.unit_type || "unit",
+        is_loose_item: Boolean(item.is_loose_item),
+        price_per_unit: Number(item.price_per_unit ?? item.price) || 0,
+        product_id: item.product_id || item.id,
+      }));
+
+      const res = await createOrder(userPhone, orderItems, finalPrice, "Offline Cash");
+      if (!res.ok) {
+        setNotificationMessage(res.message || "Failed to generate bill");
+        setNotificationType("error");
+        setShowNotification(true);
+        return;
+      }
+
+      localStorage.removeItem(`cart_${userPhone}`);
+      localStorage.removeItem(`appliedCoupons_${userPhone}`);
+
+      // Backward-compatible local record in case API is temporarily unavailable.
+      const history = JSON.parse(localStorage.getItem(`history_${userPhone}`)) || [];
+      const newBill = {
+        id: res.orderId || createBillId(),
+        total: finalPrice,
+        originalTotal: totalPrice,
+        discountAmount: discountAmount,
+        appliedCoupons: appliedCoupons,
+        items: orderItems,
+        mode: "Offline Cash",
+        date: new Date().toLocaleDateString(),
+        status: "confirmed",
+        statusUpdatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(`history_${userPhone}`, JSON.stringify([...history, newBill]));
+
+      // Dispatch update event
+      window.dispatchEvent(new Event("appUpdate"));
+
+      // Navigate immediately without blocking alert
+      navigate("/history");
+    } catch {
+      setNotificationMessage("Error generating bill. Please try again.");
+      setNotificationType("error");
+      setShowNotification(true);
+    }
   };
 
   return (
@@ -164,15 +198,40 @@ function Cart() {
                             <h3 style={{ fontSize: "20px", fontWeight: "700", margin: "0 0 10px 0", color: "#1a1a1a", lineHeight: "1.4" }}>{i.name || "Unknown Product"}</h3>
                             {i.location && <p style={{ fontSize: "16px", color: "#666", margin: "8px 0", fontWeight: "500" }}>📍 {i.location}</p>}
                             <p style={{ fontSize: "22px", fontWeight: "700", color: "#667eea", margin: "12px 0 0 0" }}>₹{Number(i.price).toFixed(2)}</p>
+                            {i.is_loose_item && (
+                              <p style={{ fontSize: "13px", color: "#4b5563", margin: "8px 0 0 0", fontWeight: "600" }}>
+                                ₹{Number(i.price_per_unit ?? i.price).toFixed(2)}/{i.unit_type || "unit"}
+                              </p>
+                            )}
                           </div>
 
                           {/* Actions */}
                           <div style={{ display: "flex", flexDirection: "column", gap: "14px", alignItems: "flex-end" }}>
                             {/* Quantity Selector */}
                             <div style={{ background: "#f3f4f6", padding: "12px 16px", borderRadius: "10px", display: "flex", alignItems: "center", gap: "12px", border: "1px solid #e5e7eb" }}>
-                              <button onClick={() => updateQuantity(index, Math.max(1, (i.quantity || 1) - 1))} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", padding: "0 6px" }}>−</button>
-                              <span style={{ fontSize: "18px", fontWeight: "600", minWidth: "30px", textAlign: "center" }}>{i.quantity || 1}</span>
-                              <button onClick={() => updateQuantity(index, (i.quantity || 1) + 1)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", padding: "0 6px" }}>+</button>
+                              <button
+                                onClick={() => updateQuantity(index, (Number(i.quantity) || 1) - getQuantityStep(i.unit_type || "unit"))}
+                                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", padding: "0 6px" }}
+                              >
+                                −
+                              </button>
+                              <input
+                                type="number"
+                                value={i.quantity || 1}
+                                min={i.is_loose_item ? getQuantityStep(i.unit_type || "unit") : 1}
+                                step={i.is_loose_item ? getQuantityStep(i.unit_type || "unit") : 1}
+                                onChange={(e) => updateQuantity(index, e.target.value)}
+                                style={{ width: "80px", textAlign: "center", border: "1px solid #d1d5db", borderRadius: "6px", padding: "6px", fontSize: "15px", fontWeight: "600" }}
+                              />
+                              <span style={{ fontSize: "13px", color: "#4b5563", minWidth: "36px", fontWeight: "700" }}>
+                                {i.is_loose_item ? (i.unit_type || "unit") : "qty"}
+                              </span>
+                              <button
+                                onClick={() => updateQuantity(index, (Number(i.quantity) || 1) + getQuantityStep(i.unit_type || "unit"))}
+                                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", padding: "0 6px" }}
+                              >
+                                +
+                              </button>
                             </div>
 
                             {/* Total Price */}

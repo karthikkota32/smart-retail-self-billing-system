@@ -3,6 +3,23 @@ export const getCartUserPhone = () =>
 
 export const getCartStorageKey = (userPhone = getCartUserPhone()) => `cart_${userPhone}`;
 
+export const getQuantityStep = (unitType) => {
+  const unit = String(unitType || "").toLowerCase();
+  if (unit === "g") return 50;
+  if (unit === "kg" || unit === "litre") return 0.1;
+  return 1;
+};
+
+export const sanitizeQuantity = (value, isLooseItem = false, unitType = "") => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return isLooseItem ? getQuantityStep(unitType) : 1;
+  if (!isLooseItem) return Math.max(1, Math.round(parsed));
+
+  const step = getQuantityStep(unitType);
+  const snapped = Math.round(parsed / step) * step;
+  return Number(Math.max(step, snapped).toFixed(3));
+};
+
 const normalizeAnyId = (value) => {
   if (value === null || value === undefined) return "";
 
@@ -70,9 +87,12 @@ const normalizeCartItem = (item) => ({
   product_id: normalizeProductId(item),
   name: item?.name || "Unknown Product",
   price: Number(item?.price) || 0,
+  price_per_unit: Number(item?.price_per_unit ?? item?.price) || 0,
+  unit_type: item?.unit_type || "unit",
+  is_loose_item: Boolean(item?.is_loose_item),
   image: sanitizeCartImage(item?.image),
   location: item?.location || "",
-  quantity: Math.max(1, Number(item?.quantity) || 1),
+  quantity: sanitizeQuantity(item?.quantity, Boolean(item?.is_loose_item), item?.unit_type || "unit"),
 });
 
 const mergeCartItemsByProductId = (items) => {
@@ -126,19 +146,27 @@ export const addItemToCart = (product, quantity = 1, userPhone = getCartUserPhon
     return { ok: false, items: readCartItems(userPhone), reason: "invalid-product" };
   }
 
+  const isLooseItem = Boolean(product?.is_loose_item);
+  const unitType = product?.unit_type || "unit";
+  const quantityToAdd = sanitizeQuantity(quantity, isLooseItem, unitType);
+
   const items = readCartItems(userPhone);
   const index = items.findIndex((item) => String(item.product_id) === productId);
 
   if (index >= 0) {
-    items[index].quantity = Math.max(1, Number(items[index].quantity) || 1) + Math.max(1, Number(quantity) || 1);
+    const baseQty = sanitizeQuantity(items[index].quantity, Boolean(items[index].is_loose_item), items[index].unit_type || "unit");
+    items[index].quantity = sanitizeQuantity(baseQty + quantityToAdd, Boolean(items[index].is_loose_item), items[index].unit_type || "unit");
   } else {
     items.push({
       product_id: productId,
       name: product?.name || "Unknown Product",
       price: Number(product?.price) || 0,
+      price_per_unit: Number(product?.price_per_unit ?? product?.price) || 0,
+      unit_type: unitType,
+      is_loose_item: isLooseItem,
       image: sanitizeCartImage(product?.image),
       location: product?.location || "",
-      quantity: Math.max(1, Number(quantity) || 1),
+      quantity: quantityToAdd,
     });
   }
 

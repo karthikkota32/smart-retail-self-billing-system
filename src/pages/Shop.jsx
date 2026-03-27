@@ -4,7 +4,7 @@ import MasterNavbar from "../components/MasterNavbar";
 import { useRealtimeProducts } from "../hooks/useRealtimeProducts";
 import { StockStatusBadge, StockIndicator, AddToCartButton } from "../components/StockStatus";
 import CartNotification from "../components/CartNotification";
-import { readCartItems, addItemToCart, normalizeProductId } from "../utils/cartUtils";
+import { readCartItems, addItemToCart, normalizeProductId, getQuantityStep, sanitizeQuantity } from "../utils/cartUtils";
 import "./Shop.css";
 
 const FALLBACK_PRODUCT_IMAGE = "https://placehold.co/600x600/e5e7eb/6b7280?text=No+Image";
@@ -38,6 +38,7 @@ function Shop() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
   const [notificationType, setNotificationType] = useState("success");
+  const [looseQuantities, setLooseQuantities] = useState({});
 
   // Use live products data
   useEffect(() => {
@@ -92,6 +93,23 @@ function Shop() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  const updateLooseQuantity = (item, value) => {
+    const productId = normalizeProductId(item);
+    if (!productId) return;
+    setLooseQuantities((prev) => ({
+      ...prev,
+      [productId]: value,
+    }));
+  };
+
+  const resolveLooseQuantity = (item) => {
+    const productId = normalizeProductId(item);
+    const unitType = item.unit_type || "unit";
+    const defaultQty = getQuantityStep(unitType);
+    const rawQty = productId ? looseQuantities[productId] : undefined;
+    return sanitizeQuantity(rawQty ?? defaultQty, true, unitType);
+  };
+
   const addToCart = (item, e) => {
     if (e?.stopPropagation) e.stopPropagation();
 
@@ -112,7 +130,8 @@ function Shop() {
       return;
     }
 
-    const result = addItemToCart(item, 1, userPhone);
+    const quantity = item.is_loose_item ? resolveLooseQuantity(item) : 1;
+    const result = addItemToCart(item, quantity, userPhone);
     if (!result.ok) {
       setNotificationMessage("Unable to add this product to cart");
       setNotificationType("error");
@@ -121,7 +140,8 @@ function Shop() {
     }
 
     setCart(result.items);
-    setNotificationMessage(`${item.name} added to cart!`);
+    const qtyText = item.is_loose_item ? `${quantity} ${item.unit_type || "unit"}` : "1 item";
+    setNotificationMessage(`${item.name} (${qtyText}) added to cart!`);
     setNotificationType("success");
     setShowNotification(true);
     window.dispatchEvent(new Event("appUpdate"));
@@ -429,10 +449,50 @@ function Shop() {
 
                   {/* Product Price */}
                   <p className="product-price">₹{item.price}</p>
+                  {item.is_loose_item && (
+                    <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#4b5563", fontWeight: "600" }}>
+                      ₹{Number(item.price_per_unit ?? item.price).toFixed(2)}/{item.unit_type || "unit"}
+                    </p>
+                  )}
                 </div>
 
                 {/* Bottom Action Section - Always at Bottom */}
                 <div className="product-card-bottom">
+                  {item.is_loose_item && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr auto",
+                        gap: "8px",
+                        marginBottom: "10px",
+                        alignItems: "center",
+                      }}
+                    >
+                      <input
+                        type="number"
+                        min={getQuantityStep(item.unit_type)}
+                        step={getQuantityStep(item.unit_type)}
+                        value={looseQuantities[normalizeProductId(item)] ?? getQuantityStep(item.unit_type)}
+                        onChange={(e) => updateLooseQuantity(item, e.target.value)}
+                        style={{
+                          width: "100%",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "8px",
+                          padding: "8px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                        }}
+                      />
+                      <span style={{ fontSize: "12px", color: "#4b5563", fontWeight: "700" }}>
+                        {item.unit_type || "unit"}
+                      </span>
+                      <div style={{ gridColumn: "1 / -1", fontSize: "12px", color: "#111827", fontWeight: "700" }}>
+                        Total: ₹{(Number(item.price_per_unit ?? item.price) * resolveLooseQuantity(item)).toFixed(2)}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Action Buttons */}
                   <div className="product-actions">
                     {/* Add to Cart Button */}
@@ -548,6 +608,11 @@ function Shop() {
                 <div>
                   <h3 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "700", color: "#111827" }}>{quickViewItem.name}</h3>
                   <div style={{ fontSize: "16px", fontWeight: "bold", color: "#667eea", marginBottom: "4px" }}>₹{quickViewItem.price}</div>
+                      {quickViewItem.is_loose_item && (
+                        <div style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563" }}>
+                          ₹{Number(quickViewItem.price_per_unit ?? quickViewItem.price).toFixed(2)}/{quickViewItem.unit_type || "unit"}
+                        </div>
+                      )}
                 </div>
                 <button
                   onClick={() => addToWishlist(quickViewItem)}
@@ -588,6 +653,32 @@ function Shop() {
             </div>
 
             {/* Action Buttons */}
+            {quickViewItem.is_loose_item && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "8px", marginTop: "6px" }}>
+                <input
+                  type="number"
+                  min={getQuantityStep(quickViewItem.unit_type)}
+                  step={getQuantityStep(quickViewItem.unit_type)}
+                  value={looseQuantities[normalizeProductId(quickViewItem)] ?? getQuantityStep(quickViewItem.unit_type)}
+                  onChange={(e) => updateLooseQuantity(quickViewItem, e.target.value)}
+                  style={{
+                    width: "100%",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "8px",
+                    padding: "10px",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                  }}
+                />
+                <span style={{ alignSelf: "center", fontSize: "13px", fontWeight: "700", color: "#4b5563" }}>
+                  {quickViewItem.unit_type || "unit"}
+                </span>
+                <div style={{ gridColumn: "1 / -1", fontSize: "13px", fontWeight: "700", color: "#111827" }}>
+                  Total: ₹{(Number(quickViewItem.price_per_unit ?? quickViewItem.price) * resolveLooseQuantity(quickViewItem)).toFixed(2)}
+                </div>
+              </div>
+            )}
+
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "12px" }}>
               <AddToCartButton product={quickViewItem} onClick={() => addToCart(quickViewItem)} />
               <button

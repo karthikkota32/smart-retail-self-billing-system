@@ -61,6 +61,9 @@ function ProductList({ products, onEdit, onDelete, loading }) {
                 </td>
                 <td>
                   <strong>{product.name}</strong>
+                  {product.is_loose_item && (
+                    <p style={styles.description}>Loose item: ₹{Number(product.price_per_unit ?? product.price).toFixed(2)}/{product.unit_type || "unit"}</p>
+                  )}
                   {product.description && (
                     <p style={styles.description}>{product.description}</p>
                   )}
