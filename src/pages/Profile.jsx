@@ -134,9 +134,14 @@ function Profile() {
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
-      localStorage.removeItem("userPhone");
-      localStorage.removeItem("username");
+      localStorage.removeItem("role");
       localStorage.removeItem("userRole");
+      localStorage.removeItem("userPhone");
+      localStorage.removeItem("phone");
+      localStorage.removeItem("username");
+      localStorage.removeItem("userName");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userEmail");
       navigate("/");
     }
   };

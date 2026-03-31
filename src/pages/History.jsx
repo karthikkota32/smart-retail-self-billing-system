@@ -6,7 +6,7 @@ import "../styles/History.css";
 
 function History() {
   const navigate = useNavigate();
-  const userPhone = localStorage.getItem("userPhone");
+  const userPhone = (localStorage.getItem("userPhone") || localStorage.getItem("phone") || "").trim();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState(null);

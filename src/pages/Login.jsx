@@ -91,6 +91,7 @@ function Login() {
       localStorage.setItem("userRole", userRole);
       localStorage.setItem("userName", result.name || "User");
       localStorage.setItem("userPhone", result.phone);
+      localStorage.setItem("phone", result.phone);
       localStorage.setItem("userEmail", result.email || "");
       localStorage.setItem("username", result.username);
       localStorage.setItem("userId", result.user_id || "");

@@ -49,7 +49,11 @@ function MasterNavbar(){
       localStorage.removeItem("role");
       localStorage.removeItem("userRole");
       localStorage.removeItem("username");
+      localStorage.removeItem("userName");
       localStorage.removeItem("userPhone");
+      localStorage.removeItem("phone");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userEmail");
       // Clear user-specific data
       localStorage.removeItem(`cart_${userPhone}`);
       localStorage.removeItem(`wishlist_${userPhone}`);
