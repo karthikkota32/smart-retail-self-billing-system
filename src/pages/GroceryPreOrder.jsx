@@ -45,11 +45,15 @@ const GroceryPreOrder = () => {
         const orderId = generateOrderId();
         const newOrder = createOrder(orderId, items, slotData.timeSlot);
 
+        console.log('Creating new order:', newOrder);
         saveOrder(newOrder);
+        console.log('Order saved successfully. All current orders:', getAllOrders());
+        
         setCreatedOrderId(orderId);
 
         // Update local state
         const updatedOrders = getAllOrders();
+        console.log('Updated orders in state:', updatedOrders);
         setAllOrders(updatedOrders);
 
         setTimeSlotData(slotData);
@@ -57,6 +61,7 @@ const GroceryPreOrder = () => {
         setIsLoading(false);
         window.scrollTo(0, 0);
       } catch (error) {
+        console.error('Error creating order:', error);
         alert(`Error creating order: ${error.message}`);
         setIsLoading(false);
       }

@@ -5,16 +5,41 @@
 
 const STORAGE_KEY = 'grocery_pre_orders';
 
+// Fallback in-memory storage if localStorage is unavailable
+let inMemoryOrders = [];
+
 /**
- * Get all orders from localStorage
+ * Check if localStorage is available
+ */
+const isLocalStorageAvailable = () => {
+  try {
+    const testKey = '__localStorage_test__';
+    localStorage.setItem(testKey, 'test');
+    localStorage.removeItem(testKey);
+    return true;
+  } catch (error) {
+    console.warn('localStorage is not available, using in-memory storage:', error);
+    return false;
+  }
+};
+
+/**
+ * Get all orders from localStorage or in-memory storage
  */
 export const getAllOrders = () => {
   try {
-    const orders = localStorage.getItem(STORAGE_KEY);
-    return orders ? JSON.parse(orders) : [];
+    if (isLocalStorageAvailable()) {
+      const orders = localStorage.getItem(STORAGE_KEY);
+      const parsed = orders ? JSON.parse(orders) : [];
+      console.log('Orders retrieved from localStorage:', parsed);
+      return parsed;
+    } else {
+      console.log('Using in-memory orders:', inMemoryOrders);
+      return [...inMemoryOrders];
+    }
   } catch (error) {
     console.error('Error retrieving orders:', error);
-    return [];
+    return [...inMemoryOrders];
   }
 };
 
@@ -27,13 +52,24 @@ export const getOrderById = (orderId) => {
 };
 
 /**
- * Save a new order to localStorage
+ * Save a new order to localStorage and in-memory storage
  */
 export const saveOrder = (order) => {
   try {
     const orders = getAllOrders();
     orders.push(order);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    
+    // Save to in-memory storage
+    inMemoryOrders = [...orders];
+    
+    // Try to save to localStorage
+    if (isLocalStorageAvailable()) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+      console.log('Order saved to localStorage:', order);
+    } else {
+      console.warn('Order saved to in-memory storage only:', order);
+    }
+    
     return order;
   } catch (error) {
     console.error('Error saving order:', error);
@@ -54,7 +90,16 @@ export const updateOrder = (orderId, updates) => {
     }
 
     orders[index] = { ...orders[index], ...updates };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    
+    // Update in-memory storage
+    inMemoryOrders = [...orders];
+    
+    // Try to update localStorage
+    if (isLocalStorageAvailable()) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    }
+    
+    console.log('Order updated:', orders[index]);
     return orders[index];
   } catch (error) {
     console.error('Error updating order:', error);
@@ -69,7 +114,16 @@ export const deleteOrder = (orderId) => {
   try {
     const orders = getAllOrders();
     const filteredOrders = orders.filter((order) => order.orderId !== orderId);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filteredOrders));
+    
+    // Update in-memory storage
+    inMemoryOrders = [...filteredOrders];
+    
+    // Try to update localStorage
+    if (isLocalStorageAvailable()) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(filteredOrders));
+    }
+    
+    console.log('Order deleted:', orderId);
     return true;
   } catch (error) {
     console.error('Error deleting order:', error);
@@ -90,7 +144,19 @@ export const filterOrdersByStatus = (status) => {
  * Clear all orders (for testing/demo purposes)
  */
 export const clearAllOrders = () => {
-  localStorage.removeItem(STORAGE_KEY);
+  try {
+    // Clear in-memory storage
+    inMemoryOrders = [];
+    
+    // Try to clear localStorage
+    if (isLocalStorageAvailable()) {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    
+    console.log('All orders cleared');
+  } catch (error) {
+    console.error('Error clearing orders:', error);
+  }
 };
 
 /**

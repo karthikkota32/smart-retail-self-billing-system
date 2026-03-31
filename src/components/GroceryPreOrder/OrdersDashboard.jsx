@@ -173,12 +173,36 @@ const OrdersDashboard = () => {
 
       <div className="admin-actions">
         <button
+          className="btn btn-primary"
+          onClick={() => {
+            console.log('Manual refresh triggered');
+            console.log('Current orders in storage:', getAllOrders());
+            refreshOrders();
+          }}
+        >
+          🔄 Refresh Orders
+        </button>
+        <button
           className="btn btn-danger"
           onClick={handleClearAllOrders}
           disabled={orders.length === 0}
         >
           Clear All Orders (Testing Only)
         </button>
+      </div>
+
+      {/* Debug Info Panel */}
+      <div style={{ 
+        marginTop: '20px', 
+        padding: '15px', 
+        backgroundColor: '#f5f5f5', 
+        borderRadius: '8px',
+        fontSize: '12px'
+      }}>
+        <p><strong>Debug Info:</strong></p>
+        <p>Orders Stored: {orders.length}</p>
+        <p>Storage Key: grocery_pre_orders</p>
+        <p>Check browser console for detailed logs</p>
       </div>
     </div>
   );
