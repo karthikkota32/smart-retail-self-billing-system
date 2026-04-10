@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import MasterNavbar from '../components/MasterNavbar';
 import UploadList from '../components/GroceryPreOrder/UploadList';
 import TimeSlotSelector from '../components/GroceryPreOrder/TimeSlotSelector';
 import {
@@ -6,8 +8,8 @@ import {
 } from '../utils/idGenerator.js';
 import {
   createOrder,
+  getOrdersByPhone,
   saveOrder,
-  getAllOrders,
 } from '../utils/orderUtils.js';
 import '../styles/GroceryPreOrder.css';
 
@@ -17,12 +19,38 @@ import '../styles/GroceryPreOrder.css';
  * Step 1: Upload List → Step 2: Select Time Slot → Step 3: Confirmation
  */
 const GroceryPreOrder = () => {
+  const navigate = useNavigate();
+  const userPhone = (localStorage.getItem('userPhone') || localStorage.getItem('phone') || 'guest').trim() || 'guest';
   const [step, setStep] = useState(1); // 1: Upload, 2: Time Slot, 3: Confirmation
   const [items, setItems] = useState([]);
   const [timeSlotData, setTimeSlotData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState(null);
-  const [allOrders, setAllOrders] = useState(() => getAllOrders());
+  const [allOrders, setAllOrders] = useState(() => getOrdersByPhone(userPhone));
+
+  useEffect(() => {
+    const refreshOrders = () => {
+      setAllOrders(getOrdersByPhone(userPhone));
+    };
+
+    refreshOrders();
+    window.addEventListener('appUpdate', refreshOrders);
+    return () => window.removeEventListener('appUpdate', refreshOrders);
+  }, [userPhone]);
+
+  const statusCounts = useMemo(() => {
+    return allOrders.reduce(
+      (acc, order) => {
+        const status = String(order.status || 'Pending').toLowerCase();
+        if (status === 'processing') acc.processing += 1;
+        else if (status === 'ready') acc.ready += 1;
+        else if (status === 'completed') acc.completed += 1;
+        else acc.pending += 1;
+        return acc;
+      },
+      { pending: 0, processing: 0, ready: 0, completed: 0 }
+    );
+  }, [allOrders]);
 
   /**
    * Handle items submission from UploadList component
@@ -43,16 +71,16 @@ const GroceryPreOrder = () => {
     setTimeout(() => {
       try {
         const orderId = generateOrderId();
-        const newOrder = createOrder(orderId, items, slotData.timeSlot);
+        const newOrder = createOrder(orderId, items, slotData.timeSlot, userPhone);
 
         console.log('Creating new order:', newOrder);
         saveOrder(newOrder);
-        console.log('Order saved successfully. All current orders:', getAllOrders());
-        
+        console.log('Order saved successfully for phone:', userPhone);
+
         setCreatedOrderId(orderId);
 
         // Update local state
-        const updatedOrders = getAllOrders();
+        const updatedOrders = getOrdersByPhone(userPhone);
         console.log('Updated orders in state:', updatedOrders);
         setAllOrders(updatedOrders);
 
@@ -155,11 +183,10 @@ const GroceryPreOrder = () => {
           <button
             className="btn btn-primary"
             onClick={() => {
-              // Redirect to orders view or dashboard
-              window.location.href = '/admin-orders';
+              navigate('/history');
             }}
           >
-            View All Orders
+            View Order History
           </button>
           <button
             className="btn btn-secondary"
@@ -179,6 +206,7 @@ const GroceryPreOrder = () => {
               <div key={order.orderId} className="preview-order">
                 <div className="preview-id">{order.orderId}</div>
                 <div className="preview-slot">{order.timeSlot}</div>
+                <div className="preview-amount">₹{Number(order.totalAmount || 0).toFixed(2)}</div>
                 <div
                   className="preview-status"
                   style={{
@@ -208,42 +236,72 @@ const GroceryPreOrder = () => {
   );
 
   return (
-    <div className="grocery-preorder-page">
-      <div className="page-header">
-        <h1>🛒 Grocery Pre-Order System</h1>
-        <p>Order your groceries in advance and pick them up at your convenience</p>
-      </div>
+    <div className="grocery-preorder-shell">
+      <MasterNavbar />
+      <div className="grocery-preorder-page">
+        <div className="page-header">
+          <h1>🛒 Grocery Pre-Order System</h1>
+          <p>Order your groceries in advance and pick them up at your convenience</p>
+        </div>
 
-      {/* Progress Indicator */}
-      <div className="progress-indicator">
-        <div className={`progress-step ${step >= 1 ? 'active' : ''}`}>
-          <span className="step-number">1</span>
-          <span className="step-label">Upload List</span>
+        <div className="preorder-status-board">
+          <div className="preorder-status-header">
+            <h2>Pre-Order Status</h2>
+            <button className="status-link-btn" onClick={() => navigate('/history')}>
+              Open History
+            </button>
+          </div>
+          <div className="preorder-status-grid">
+            <div className="status-card pending">
+              <span className="status-label">Pending</span>
+              <span className="status-value">{statusCounts.pending}</span>
+            </div>
+            <div className="status-card processing">
+              <span className="status-label">Processing</span>
+              <span className="status-value">{statusCounts.processing}</span>
+            </div>
+            <div className="status-card ready">
+              <span className="status-label">Ready</span>
+              <span className="status-value">{statusCounts.ready}</span>
+            </div>
+            <div className="status-card completed">
+              <span className="status-label">Completed</span>
+              <span className="status-value">{statusCounts.completed}</span>
+            </div>
+          </div>
         </div>
-        <div className="progress-connector"></div>
-        <div className={`progress-step ${step >= 2 ? 'active' : ''}`}>
-          <span className="step-number">2</span>
-          <span className="step-label">Select Slot</span>
-        </div>
-        <div className="progress-connector"></div>
-        <div className={`progress-step ${step >= 3 ? 'active' : ''}`}>
-          <span className="step-number">3</span>
-          <span className="step-label">Confirmation</span>
-        </div>
-      </div>
 
-      {/* Step Content */}
-      <div className="step-content">
-        {step === 1 && <UploadList onSubmit={handleItemsSubmit} />}
-        {step === 2 && (
-          <TimeSlotSelector
-            items={items}
-            onSubmit={handleTimeSlotSubmit}
-            onBack={handleBackFromTimeSlot}
-            isLoading={isLoading}
-          />
-        )}
-        {step === 3 && renderConfirmation()}
+        {/* Progress Indicator */}
+        <div className="progress-indicator">
+          <div className={`progress-step ${step >= 1 ? 'active' : ''}`}>
+            <span className="step-number">1</span>
+            <span className="step-label">Upload List</span>
+          </div>
+          <div className="progress-connector"></div>
+          <div className={`progress-step ${step >= 2 ? 'active' : ''}`}>
+            <span className="step-number">2</span>
+            <span className="step-label">Select Slot</span>
+          </div>
+          <div className="progress-connector"></div>
+          <div className={`progress-step ${step >= 3 ? 'active' : ''}`}>
+            <span className="step-number">3</span>
+            <span className="step-label">Confirmation</span>
+          </div>
+        </div>
+
+        {/* Step Content */}
+        <div className="step-content">
+          {step === 1 && <UploadList onSubmit={handleItemsSubmit} />}
+          {step === 2 && (
+            <TimeSlotSelector
+              items={items}
+              onSubmit={handleTimeSlotSubmit}
+              onBack={handleBackFromTimeSlot}
+              isLoading={isLoading}
+            />
+          )}
+          {step === 3 && renderConfirmation()}
+        </div>
       </div>
     </div>
   );

@@ -22,7 +22,6 @@ export const useRealtimeProducts = (pollIntervalMs = 5000) => {
     try {
       const response = await fetch(`${apiBase}/api/mongo/products`, {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
         cache: "no-store", // Prevent caching
       });
 

@@ -18,8 +18,20 @@ load_dotenv()
 
 app = Flask(__name__)
 
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
-CORS(app, resources={r"/*": {"origins": [o.strip() for o in allowed_origins]}})
+default_allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://smart-retail-self-billing-system.vercel.app",
+]
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+allowed_origins = [o.strip().rstrip("/") for o in allowed_origins_env.split(",") if o.strip()] or default_allowed_origins
+
+CORS(
+    app,
+    resources={r"/*": {"origins": allowed_origins}},
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+)
 
 DB_PATH = Path(__file__).with_name("app.db")
 

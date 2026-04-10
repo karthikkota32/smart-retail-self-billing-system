@@ -99,6 +99,14 @@ function MasterNavbar(){
 
             <button 
               className="nav-link"
+              onClick={() => handleNavClick("/grocery-preorder")}
+              title="Pre-order groceries with time slots"
+            >
+              🥕 Grocery Pre-Order
+            </button>
+
+            <button 
+              className="nav-link"
               onClick={() => handleNavClick("/dashboard")}
               title="Dashboard"
             >

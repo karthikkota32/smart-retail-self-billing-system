@@ -11,6 +11,7 @@ import Payment from "./pages/Payment";
 import Profile from "./pages/Profile";
 import Wishlist from "./pages/Wishlist";
 import Coupons from "./pages/Coupons";
+import GroceryPreOrder from "./pages/GroceryPreOrder";
 
 function App() {
   console.log("App is rendering");
@@ -31,6 +32,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/coupons" element={<Coupons />} />
+            <Route path="/grocery-preorder" element={<GroceryPreOrder />} />
           </Routes>
         </Suspense>
       </BrowserRouter>

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import OrderCard from './OrderCard';
 import { getAllOrders, updateOrder, deleteOrder } from '../../utils/orderUtils.js';
-import '../styles/AdminOrders.css';
+import '../../styles/AdminOrders.css';
 
 const OrdersDashboard = () => {
   const [orders, setOrders] = useState(() => getAllOrders());

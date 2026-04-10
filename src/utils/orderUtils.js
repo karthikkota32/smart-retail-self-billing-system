@@ -8,6 +8,21 @@ const STORAGE_KEY = 'grocery_pre_orders';
 // Fallback in-memory storage if localStorage is unavailable
 let inMemoryOrders = [];
 
+const normalizePhone = (phone) => {
+  const candidate = String(phone || '').trim();
+  if (candidate) return candidate;
+  return (
+    String(localStorage.getItem('userPhone') || localStorage.getItem('phone') || '').trim() ||
+    'guest'
+  );
+};
+
+const emitOrdersUpdated = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('appUpdate'));
+  }
+};
+
 /**
  * Check if localStorage is available
  */
@@ -44,6 +59,17 @@ export const getAllOrders = () => {
 };
 
 /**
+ * Get all orders for a specific phone number.
+ */
+export const getOrdersByPhone = (phone) => {
+  const resolvedPhone = normalizePhone(phone);
+  return getAllOrders().filter((order) => {
+    const orderPhone = normalizePhone(order.phone);
+    return orderPhone === resolvedPhone;
+  });
+};
+
+/**
  * Get a single order by ID
  */
 export const getOrderById = (orderId) => {
@@ -57,7 +83,11 @@ export const getOrderById = (orderId) => {
 export const saveOrder = (order) => {
   try {
     const orders = getAllOrders();
-    orders.push(order);
+    const normalizedOrder = {
+      ...order,
+      phone: normalizePhone(order.phone),
+    };
+    orders.push(normalizedOrder);
     
     // Save to in-memory storage
     inMemoryOrders = [...orders];
@@ -65,12 +95,13 @@ export const saveOrder = (order) => {
     // Try to save to localStorage
     if (isLocalStorageAvailable()) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
-      console.log('Order saved to localStorage:', order);
+      console.log('Order saved to localStorage:', normalizedOrder);
     } else {
-      console.warn('Order saved to in-memory storage only:', order);
+      console.warn('Order saved to in-memory storage only:', normalizedOrder);
     }
-    
-    return order;
+
+    emitOrdersUpdated();
+    return normalizedOrder;
   } catch (error) {
     console.error('Error saving order:', error);
     throw error;
@@ -98,7 +129,8 @@ export const updateOrder = (orderId, updates) => {
     if (isLocalStorageAvailable()) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
     }
-    
+
+    emitOrdersUpdated();
     console.log('Order updated:', orders[index]);
     return orders[index];
   } catch (error) {
@@ -122,7 +154,8 @@ export const deleteOrder = (orderId) => {
     if (isLocalStorageAvailable()) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(filteredOrders));
     }
-    
+
+    emitOrdersUpdated();
     console.log('Order deleted:', orderId);
     return true;
   } catch (error) {
@@ -152,7 +185,8 @@ export const clearAllOrders = () => {
     if (isLocalStorageAvailable()) {
       localStorage.removeItem(STORAGE_KEY);
     }
-    
+
+    emitOrdersUpdated();
     console.log('All orders cleared');
   } catch (error) {
     console.error('Error clearing orders:', error);
@@ -177,13 +211,24 @@ export const getOrderStats = () => {
 /**
  * Create a new order object
  */
-export const createOrder = (orderId, items, timeSlot) => {
+export const createOrder = (orderId, items, timeSlot, phone) => {
+  // Calculate total amount from items
+  const totalAmount = Array.isArray(items)
+    ? items.reduce((sum, item) => {
+        const price = typeof item === 'string' ? 0 : Number(item.price || 0);
+        const quantity = typeof item === 'string' ? 1 : Number(item.quantity || 1);
+        return sum + price * quantity;
+      }, 0)
+    : 0;
+
   return {
     orderId,
     items,
     timeSlot,
+    phone: normalizePhone(phone),
+    orderType: 'preorder',
     status: 'Pending',
-    totalAmount: 0,
+    totalAmount,
     isPaid: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

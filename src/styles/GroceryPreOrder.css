@@ -22,11 +22,96 @@
    ============================================ */
 
 .grocery-preorder-page {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 30px 20px;
+  padding: 24px 16px 40px;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   min-height: 100vh;
+}
+
+.grocery-preorder-shell {
+  min-height: 100vh;
+  background: #eef2ff;
+}
+
+.preorder-status-board {
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 18px;
+  margin-bottom: 24px;
+}
+
+.preorder-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.preorder-status-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.status-link-btn {
+  border: 1px solid #dbe1ff;
+  background: #eef2ff;
+  color: #3446b9;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.preorder-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.status-card {
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid transparent;
+}
+
+.status-label {
+  font-size: 0.85rem;
+  color: #525a6d;
+}
+
+.status-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.status-card.pending {
+  background: #fff9e8;
+  border-color: #ffecb5;
+  color: #8a6a00;
+}
+
+.status-card.processing {
+  background: #eaf7ff;
+  border-color: #cae9ff;
+  color: #0f5f93;
+}
+
+.status-card.ready {
+  background: #e9f9ef;
+  border-color: #c9efd8;
+  color: #1f7a42;
+}
+
+.status-card.completed {
+  background: #f0f2f5;
+  border-color: #dde2e9;
+  color: #4d5664;
 }
 
 .page-header {
@@ -706,6 +791,12 @@
   font-size: 0.9rem;
 }
 
+.preview-amount {
+  font-weight: 700;
+  color: #667eea;
+  font-size: 1.05rem;
+}
+
 .preview-status {
   color: white;
   padding: 4px 8px;
@@ -728,6 +819,15 @@
 @media (max-width: 768px) {
   .grocery-preorder-page {
     padding: 20px 15px;
+  }
+
+  .preorder-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .preorder-status-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .page-header h1 {
@@ -790,6 +890,10 @@
 }
 
 @media (max-width: 480px) {
+  .grocery-preorder-page {
+    padding: 14px 10px 30px;
+  }
+
   .page-header h1 {
     font-size: 1.5rem;
   }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import '../styles/GroceryPreOrder.css';
+import '../../styles/GroceryPreOrder.css';
 
 /**
  * UploadList Component

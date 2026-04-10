@@ -4,6 +4,7 @@ import ProductForm from "../components/ProductForm";
 import ProductList from "../components/ProductList";
 import UserManagement from "../components/UserManagement";
 import CouponManagement from "../components/CouponManagement";
+import OrdersDashboard from "../components/GroceryPreOrder/OrdersDashboard";
 import { useAdminProducts } from "../hooks/useAdminProducts";
 import { getAdminDashboardStats } from "../services/api";
 
@@ -19,7 +20,7 @@ function Admin() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
-  const [activeTab, setActiveTab] = useState("products"); // "products", "users", or "coupons"
+  const [activeTab, setActiveTab] = useState("products"); // "products", "users", "coupons", or "orders"
 
   // Load live admin stats from backend (MongoDB-backed)
   useEffect(() => {
@@ -170,6 +171,22 @@ function Admin() {
           >
             🎟️ Coupons
           </button>
+          <button
+            onClick={() => setActiveTab("orders")}
+            style={{
+              padding: "12px 24px",
+              background: activeTab === "orders" ? "#667eea" : "transparent",
+              color: activeTab === "orders" ? "white" : "#666",
+              border: "none",
+              borderBottom: activeTab === "orders" ? "3px solid #667eea" : "none",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "16px",
+              transition: "all 0.3s ease"
+            }}
+          >
+            🥕 Grocery Orders
+          </button>
         </div>
 
         {/* Products Tab */}
@@ -237,6 +254,13 @@ function Admin() {
         {/* Coupons Tab */}
         {activeTab === "coupons" && (
           <CouponManagement />
+        )}
+
+        {/* Grocery Orders Tab */}
+        {activeTab === "orders" && (
+          <div style={{ padding: "30px 20px" }}>
+            <OrdersDashboard />
+          </div>
         )}
       </div>
     </div>

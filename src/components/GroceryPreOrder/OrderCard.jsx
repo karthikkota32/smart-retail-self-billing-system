@@ -1,5 +1,5 @@
 import React from 'react';
-import '../styles/AdminOrders.css';
+import '../../styles/AdminOrders.css';
 
 /**
  * OrderCard Component
@@ -61,7 +61,15 @@ const OrderCard = ({ order, onStatusChange, onPaymentProcess, onDelete }) => {
       {/* Order Details */}
       <div className="order-details">
         <div className="detail-section">
-          <h4>📦 Items ({order.items.length})</h4>
+          <h4>� Customer Details</h4>
+          <div className="detail-row">
+            <label>📱 Phone:</label>
+            <span className="value">{order.phone || 'N/A'}</span>
+          </div>
+        </div>
+
+        <div className="detail-section">
+          <h4>�📦 Items ({order.items.length})</h4>
           <div className="items-list">
             {order.items.map((item, index) => (
               <div key={index} className="item-entry">
@@ -79,7 +87,7 @@ const OrderCard = ({ order, onStatusChange, onPaymentProcess, onDelete }) => {
 
         <div className="detail-row">
           <label>💰 Total Amount:</label>
-          <span className="value">${order.totalAmount.toFixed(2)}</span>
+          <span className="value">₹{Number(order.totalAmount || 0).toFixed(2)}</span>
         </div>
 
         <div className="detail-row">
