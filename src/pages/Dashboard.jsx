@@ -3,12 +3,15 @@ import { useNavigate } from "react-router-dom";
 import MasterNavbar from "../components/MasterNavbar";
 import { getMongoProducts } from "../services/api";
 import { readCartItems, addItemToCart } from "../utils/cartUtils";
+import { useLanguage } from "../context/LanguageContext";
 import "../styles/Dashboard.css";
 
 function Dashboard() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const userPhone = localStorage.getItem("userPhone") || "guest";
   const username = localStorage.getItem("username");
+  const userRole = localStorage.getItem("userRole");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState(() => readCartItems(userPhone));
@@ -67,58 +70,69 @@ function Dashboard() {
       
       <div className="dashboard-container">
         <div className="hero-section">
-          <h1>Welcome, {username}! 👋</h1>
-          <p>Your one-stop shopping destination</p>
-          <button
-            className="cta-btn"
-            onClick={() => navigate("/shop")}
-          >
-            🛍️ Start Shopping
-          </button>
+          <h1>{t("dashboard.greeting", "Welcome back")}, {username}! 👋</h1>
+          <p>{t("dashboard.subtitle", "Your one-stop shopping destination")}</p>
+          <div style={{ display: "flex", gap: "12px", justifyContent: "center", marginTop: "16px", flexWrap: "wrap" }}>
+            <button
+              className="cta-btn"
+              onClick={() => navigate("/shop")}
+            >
+              🛍️ {t("dashboard.browse_shop", "Start Shopping")}
+            </button>
+            {userRole === "admin" && (
+              <button
+                className="cta-btn"
+                style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)" }}
+                onClick={() => navigate("/admin")}
+              >
+                👨‍💼 {t("nav.admin_panel", "Go to Admin Dashboard")}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="quick-stats">
           <div className="stat-card">
             <span className="stat-icon">🛒</span>
-            <span className="stat-label">Cart Items</span>
+            <span className="stat-label">{t("dashboard.cart_items", "Cart Items")}</span>
             <span className="stat-value">{cart.length}</span>
           </div>
           <div className="stat-card wishlist-card">
             <span className="stat-icon">❤️</span>
-            <span className="stat-label">Wishlist</span>
+            <span className="stat-label">{t("nav.wishlist", "Wishlist")}</span>
             <button
               className="stat-link wishlist-link"
               onClick={() => navigate("/wishlist")}
             >
-              View →
+              {t("common.view", "View")} →
             </button>
           </div>
           <div className="stat-card">
             <span className="stat-icon">📦</span>
-            <span className="stat-label">Orders</span>
+            <span className="stat-label">{t("nav.history", "Orders")}</span>
             <button
               className="stat-link"
               onClick={() => navigate("/history")}
             >
-              View →
+              {t("common.view", "View")} →
             </button>
           </div>
           <div className="stat-card">
             <span className="stat-icon">🎟️</span>
-            <span className="stat-label">Coupons</span>
+            <span className="stat-label">{t("nav.coupons", "Coupons")}</span>
             <button
               className="stat-link"
               onClick={() => navigate("/coupons")}
             >
-              View →
+              {t("common.view", "View")} →
             </button>
           </div>
         </div>
 
         <div className="featured-section">
-          <h2>Featured Products</h2>
+          <h2>{t("dashboard.recommended", "Featured Products")}</h2>
           {loading ? (
-            <p className="loading">Loading products...</p>
+            <p className="loading">{t("common.loading", "Loading products...")}</p>
           ) : products.length > 0 ? (
             <div className="product-grid">
               {products.map((product) => (
@@ -138,13 +152,13 @@ function Dashboard() {
                         className="btn-primary"
                         onClick={() => navigate(`/product/${product._id || product.id}`)}
                       >
-                        View
+                        {t("shop.view_details", "View")}
                       </button>
                       <button
                         className="btn-secondary"
                         onClick={() => addToCart(product)}
                       >
-                        Add
+                        {t("shop.add_to_cart", "Add")}
                       </button>
                     </div>
                   </div>
@@ -152,28 +166,28 @@ function Dashboard() {
               ))}
             </div>
           ) : (
-            <p className="no-products">No products available</p>
+            <p className="no-products">{t("shop.no_products", "No products available")}</p>
           )}
         </div>
 
         <div className="recommendations">
-          <h2>Quick Actions</h2>
+          <h2>{t("dashboard.quick_actions", "Quick Actions")}</h2>
           <div className="action-cards">
             <div className="action-card" onClick={() => navigate("/shop")}>
               <span className="action-icon">🔍</span>
-              <span>Browse Shop</span>
+              <span>{t("dashboard.browse_shop", "Browse Shop")}</span>
             </div>
             <div className="action-card" onClick={() => navigate("/comparison")}>
               <span className="action-icon">⚖️</span>
-              <span>Compare Products</span>
+              <span>{t("shop.compare", "Compare Products")}</span>
             </div>
             <div className="action-card" onClick={() => navigate("/cart")}>
               <span className="action-icon">💳</span>
-              <span>Checkout</span>
+              <span>{t("cart.checkout", "Checkout")}</span>
             </div>
             <div className="action-card" onClick={() => navigate("/profile")}>
               <span className="action-icon">⚙️</span>
-              <span>Settings</span>
+              <span>{t("nav.profile", "Profile")}</span>
             </div>
           </div>
         </div>

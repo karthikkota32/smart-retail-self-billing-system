@@ -4,6 +4,7 @@ import MasterNavbar from "../components/MasterNavbar";
 import CartNotification from "../components/CartNotification";
 import { readCartItems, writeCartItems, getQuantityStep, sanitizeQuantity } from "../utils/cartUtils";
 import { createOrder } from "../services/api";
+import { useLanguage } from "../context/LanguageContext";
 
 function createBillId() {
   return Date.now();
@@ -11,6 +12,7 @@ function createBillId() {
 
 function Cart() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const userPhone = localStorage.getItem("userPhone") || "guest";
   const [items, setItems] = useState(() => {
     const cartData = readCartItems(userPhone);
@@ -125,6 +127,7 @@ function Cart() {
 
       // Dispatch update event
       window.dispatchEvent(new Event("appUpdate"));
+      window.dispatchEvent(new Event("stockUpdate"));
 
       // Navigate immediately without blocking alert
       navigate("/history");
@@ -142,8 +145,8 @@ function Cart() {
       {/* Header Section */}
       <div style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", padding: "36px 24px", color: "white" }}>
         <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
-          <h1 style={{ fontSize: "42px", fontWeight: "700", margin: "0 0 8px 0", letterSpacing: "-0.5px" }}>🛒 Shopping Cart</h1>
-          <p style={{ fontSize: "18px", margin: "0", opacity: "0.9", fontWeight: "500" }}>{items.length} {items.length === 1 ? "item" : "items"} in your cart</p>
+          <h1 style={{ fontSize: "42px", fontWeight: "700", margin: "0 0 8px 0", letterSpacing: "-0.5px" }}>🛒 {t("cart.title", "Shopping Cart")}</h1>
+          <p style={{ fontSize: "18px", margin: "0", opacity: "0.9", fontWeight: "500" }}>{items.length} {t("dashboard.cart_items", "items in your cart")}</p>
         </div>
       </div>
 
@@ -153,8 +156,8 @@ function Cart() {
           {/* Empty Cart State */}
           {items.length === 0 && (
             <div style={{ textAlign: "center", padding: "80px 40px", background: "white", borderRadius: "20px", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: "1px solid #e5e7eb" }}>
-              <h2 style={{ fontSize: "36px", color: "#667eea", marginBottom: "16px", fontWeight: "700" }}>Your cart is empty</h2>
-              <p style={{ fontSize: "20px", color: "#666", marginBottom: "32px", maxWidth: "600px", margin: "0 auto 32px" }}>Add some items to get started with your purchase</p>
+              <h2 style={{ fontSize: "36px", color: "#667eea", marginBottom: "16px", fontWeight: "700" }}>{t("cart.empty_cart", "Your cart is empty")}</h2>
+              <p style={{ fontSize: "20px", color: "#666", marginBottom: "32px", maxWidth: "600px", margin: "0 auto 32px" }}>{t("cart.empty_cart_msg", "Add some items to get started with your purchase")}</p>
               <button
                 onClick={() => navigate("/shop")}
                 style={{
@@ -170,7 +173,7 @@ function Cart() {
                   boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)"
                 }}
               >
-                Continue Shopping
+                {t("cart.continue_shopping", "Continue Shopping")}
               </button>
             </div>
           )}
@@ -292,24 +295,24 @@ function Cart() {
 
                 {/* Order Summary Card */}
                 <div style={{ background: "white", padding: "28px", borderRadius: "16px", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: "1px solid #e5e7eb" }}>
-                  <h3 style={{ fontSize: "20px", fontWeight: "700", margin: "0 0 20px 0", color: "#1a1a1a" }}>Order Summary</h3>
+                  <h3 style={{ fontSize: "20px", fontWeight: "700", margin: "0 0 20px 0", color: "#1a1a1a" }}>{t("cart.title", "Order Summary")}</h3>
 
                   <div style={{ display: "grid", gap: "16px", marginBottom: "20px", paddingBottom: "20px", borderBottom: "1px solid #e5e7eb" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "17px" }}>
-                      <span style={{ color: "#6b7280" }}>Subtotal ({items.length} {items.length === 1 ? "item" : "items"})</span>
+                      <span style={{ color: "#6b7280" }}>{t("cart.subtotal", "Subtotal")} ({items.length} {t("dashboard.cart_items", "items")})</span>
                       <span style={{ fontWeight: "600", color: "#1a1a1a" }}>₹{totalPrice.toFixed(2)}</span>
                     </div>
 
                     {appliedCoupons.length > 0 && (
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: "17px" }}>
-                        <span style={{ color: "#6b7280" }}>Discount ({totalDiscount}%)</span>
+                        <span style={{ color: "#6b7280" }}>{t("cart.discount", "Discount")} ({totalDiscount}%)</span>
                         <span style={{ fontWeight: "600", color: "#10b981" }}>−₹{discountAmount.toFixed(2)}</span>
                       </div>
                     )}
                   </div>
 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-                    <span style={{ fontSize: "20px", fontWeight: "700", color: "#1a1a1a" }}>Total</span>
+                    <span style={{ fontSize: "20px", fontWeight: "700", color: "#1a1a1a" }}>{t("cart.total", "Total")}</span>
                     <span style={{ fontSize: "30px", fontWeight: "700", color: "#667eea" }}>₹{finalPrice.toFixed(2)}</span>
                   </div>
 
@@ -331,7 +334,7 @@ function Cart() {
                       onMouseEnter={(e) => { e.currentTarget.style.background = "#f3f4f6"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "white"; }}
                     >
-                      🎟️ Add Coupons
+                      🎟️ {t("coupons.title", "Add Coupons")}
                     </button>
 
                     <button
@@ -351,7 +354,7 @@ function Cart() {
                       onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 6px 20px rgba(16, 185, 129, 0.4)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 4px 12px rgba(16, 185, 129, 0.3)"; e.currentTarget.style.transform = "translateY(0)"; }}
                     >
-                      💾 Generate Bill
+                      💾 {t("cart.checkout", "Generate Bill")}
                     </button>
 
                     <button

@@ -47,6 +47,20 @@ const TimeSlotSelector = ({ items, onSubmit, isLoading = false, onBack }) => {
     });
   };
 
+  /**
+   * Format item for display
+   */
+  const formatItemName = (item) => {
+    if (!item) return '';
+    if (typeof item === 'string') return item;
+    const name = item.name || 'Item';
+    const quantity = item.quantity;
+    if (!quantity) return name;
+    const unit = item.is_loose_item ? (item.unit_type || 'unit') : 'item';
+    const unitText = item.is_loose_item ? unit : (Number(quantity) > 1 ? 'items' : 'item');
+    return `${name} × ${quantity} ${unitText}`;
+  };
+
   return (
     <div className="time-slot-selector-container">
       <h2>Select Your Delivery Time Slot</h2>
@@ -58,8 +72,8 @@ const TimeSlotSelector = ({ items, onSubmit, isLoading = false, onBack }) => {
         <p>Items selected: <strong>{items.length}</strong></p>
         <div className="items-quick-view">
           {items.slice(0, 3).map((item, index) => (
-            <span key={index} className="quick-item">
-              {item}
+            <span key={item?.product_id || index} className="quick-item">
+              {formatItemName(item)}
             </span>
           ))}
           {items.length > 3 && (
@@ -112,7 +126,7 @@ const TimeSlotSelector = ({ items, onSubmit, isLoading = false, onBack }) => {
             className="btn btn-primary"
             disabled={!selectedSlot || isLoading}
           >
-            {isLoading ? 'Processing...' : 'Continue to Payment'}
+            {isLoading ? 'Processing...' : 'Confirm & Reserve Slot'}
           </button>
         </div>
       </form>

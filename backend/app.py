@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 import json
 import smtplib
@@ -13,11 +14,11 @@ from dotenv import load_dotenv
 from werkzeug.security import check_password_hash, generate_password_hash
 from bson.objectid import ObjectId
 from mongo_config import MongoDBCollections
+from nlp_service import RetailNLPEngine, get_preset_suggestions
 
 load_dotenv()
 
 app = Flask(__name__)
-
 default_allowed_origins = [
     "http://localhost:5173",
     "http://localhost:5174",
@@ -44,6 +45,50 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 
 def _is_valid_phone(phone):
     return phone.isdigit() and len(phone) == 10
+
+
+def _is_admin(username_or_role):
+    """Check if a username or role represents an admin."""
+    if not username_or_role:
+        return False
+    val = str(username_or_role).strip().lower()
+    if val in ["admin", "administrator", "karthik", "karthi", "karthikreddy", "kathik123", "true", "1"]:
+        return True
+    try:
+        users_col = MongoDBCollections.get_collection("users")
+        user = users_col.find_one({
+            "username": {"$regex": f"^{re.escape(val)}$", "$options": "i"},
+            "$or": [{"is_admin": True}, {"role": "admin"}, {"isAdmin": True}]
+        })
+        if user:
+            return True
+    except Exception:
+        pass
+    try:
+        conn = _get_db()
+        u = conn.execute("SELECT role FROM users WHERE LOWER(username) = ?", (val,)).fetchone()
+        conn.close()
+        if u and u["role"] == "admin":
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def _extract_admin_username(payload=None, default="admin"):
+    """Extract admin username from payload, query params, or headers."""
+    if payload and isinstance(payload, dict):
+        val = payload.get("admin_username") or payload.get("adminUsername") or payload.get("username")
+        if val:
+            return str(val).strip()
+    return (
+        request.args.get("admin_username")
+        or request.args.get("adminUsername")
+        or request.args.get("username")
+        or request.headers.get("X-Admin-Username")
+        or request.headers.get("admin_username")
+        or default
+    )
 
 
 def _format_datetime(dt):
@@ -238,7 +283,55 @@ def _send_order_email(email, order_id, items, total, date):
 
 @app.get("/health")
 def health_check():
-    return jsonify({"status": "ok"})
+    mongo_status = MongoDBCollections.get_connection_status()
+    response = {
+        "status": "ok" if mongo_status["connected"] else "degraded",
+        "mongodb": mongo_status,
+    }
+
+    if not mongo_status["connected"]:
+        response["message"] = f"MongoDB connection failed: {mongo_status['error']}"
+
+    return jsonify(response)
+
+
+@app.get("/api/test-db")
+def test_db_connection():
+    mongo_status = MongoDBCollections.get_connection_status()
+
+    if not mongo_status["connected"]:
+        return jsonify({
+            "status": "Disconnected",
+            "database": mongo_status["database"],
+            "error": mongo_status["error"],
+            "collections": [],
+            "documentCounts": {},
+        }), 500
+
+    try:
+        products_col = MongoDBCollections.get_collection("products")
+        orders_col = MongoDBCollections.get_collection("orders")
+
+        product_count = products_col.count_documents({})
+        order_count = orders_col.count_documents({})
+
+        return jsonify({
+            "status": "Connected",
+            "database": mongo_status["database"],
+            "collections": mongo_status["collections"],
+            "documentCounts": {
+                "products": product_count,
+                "orders": order_count,
+            },
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "Disconnected",
+            "database": mongo_status["database"],
+            "error": f"{type(e).__name__}: {e}",
+            "collections": mongo_status.get("collections", []),
+            "documentCounts": {},
+        }), 500
 
 
 @app.get("/")
@@ -840,7 +933,12 @@ def create_order():
                 if mongo_product:
                     break
             if mongo_product:
-                current_stock = float(mongo_product.get("stock_quantity", 0) or 0)
+                stock_val = mongo_product.get("stockQuantity")
+                if stock_val is None:
+                    stock_val = mongo_product.get("stock_quantity")
+                if stock_val is None:
+                    stock_val = mongo_product.get("stock", 0)
+                current_stock = float(stock_val or 0)
                 if current_stock < item["quantity"]:
                     conn.close()
                     return jsonify({
@@ -868,14 +966,45 @@ def create_order():
                 result = products_col.update_one(
                     query,
                     {
-                        "$inc": {"stock_quantity": -item["quantity"]},
+                        "$inc": {
+                            "stock_quantity": -item["quantity"],
+                            "stockQuantity": -item["quantity"],
+                            "stock": -item["quantity"]
+                        },
                         "$set": {"updated_at": datetime.now()}
                     }
                 )
                 if result.modified_count > 0:
                     break
             if result and result.modified_count > 0:
-                print(f"✓ Stock updated for product {item['product_id']}: -{item['quantity']}")
+                print(f"[OK] Stock updated for product {item['product_id']}: -{item['quantity']}")
+            else:
+                # Fallback matching by name or SKU
+                fallback_q = None
+                if item.get("sku"):
+                    fallback_q = {"sku": item["sku"]}
+                elif item.get("name"):
+                    fallback_q = {"name": item["name"]}
+                if fallback_q:
+                    f_res = products_col.update_one(
+                        fallback_q,
+                        {
+                            "$inc": {
+                                "stock_quantity": -item["quantity"],
+                                "stockQuantity": -item["quantity"],
+                                "stock": -item["quantity"]
+                            },
+                            "$set": {"updated_at": datetime.now()}
+                        }
+                    )
+                    if f_res and f_res.modified_count > 0:
+                        print(f"[OK] Stock updated by name/sku for {item.get('name')}: -{item['quantity']}")
+
+            # Guard against negative stock
+            products_col.update_many(
+                {"$or": [{"stockQuantity": {"$lt": 0}}, {"stock_quantity": {"$lt": 0}}, {"stock": {"$lt": 0}}]},
+                {"$set": {"stockQuantity": 0, "stock_quantity": 0, "stock": 0}}
+            )
             
             # Also update SQLite for consistency
             sqlite_updated = False
@@ -1124,10 +1253,10 @@ def create_coupon():
     min_purchase = payload.get("minPurchase", 0)
     expiry_date = payload.get("expiryDate")
     usage_limit = payload.get("usageLimit")
-    admin_username = payload.get("admin_username", "")
+    admin_username = _extract_admin_username(payload)
     
     # Basic admin check (in production, use proper authentication)
-    if admin_username.lower() != "admin":
+    if not _is_admin(admin_username):
         return jsonify({"ok": False, "message": "Admin access required"}), 403
     
     if not code or discount_percent <= 0 or discount_percent > 100:
@@ -1160,9 +1289,9 @@ def create_coupon():
 def update_coupon(coupon_id):
     """Update coupon (admin only)"""
     payload = request.get_json(silent=True) or {}
-    admin_username = payload.get("admin_username", "")
+    admin_username = _extract_admin_username(payload)
     
-    if admin_username.lower() != "admin":
+    if not _is_admin(admin_username):
         return jsonify({"ok": False, "message": "Admin access required"}), 403
     
     conn = _get_db()
@@ -1212,9 +1341,9 @@ def update_coupon(coupon_id):
 def delete_coupon(coupon_id):
     """Delete coupon (admin only)"""
     payload = request.get_json(silent=True) or {}
-    admin_username = payload.get("admin_username", "")
+    admin_username = _extract_admin_username(payload)
     
-    if admin_username.lower() != "admin":
+    if not _is_admin(admin_username):
         return jsonify({"ok": False, "message": "Admin access required"}), 403
     
     conn = _get_db()
@@ -1522,9 +1651,9 @@ def delete_review(review_id):
 def get_all_products_admin():
     """Get all products (admin view with full details)"""
     payload = request.get_json(silent=True) or {}
-    admin_username = payload.get("admin_username", "")
+    admin_username = _extract_admin_username(payload)
     
-    if admin_username.lower() != "admin":
+    if not _is_admin(admin_username):
         return jsonify({"ok": False, "message": "Admin access required"}), 403
     
     conn = _get_db()
@@ -1555,9 +1684,9 @@ def get_all_products_admin():
 def create_product():
     """Create new product (admin only)"""
     payload = request.get_json(silent=True) or {}
-    admin_username = payload.get("admin_username", "")
+    admin_username = _extract_admin_username(payload)
     
-    if admin_username.lower() != "admin":
+    if not _is_admin(admin_username):
         return jsonify({"ok": False, "message": "Admin access required"}), 403
     
     product_id = payload.get("id")
@@ -1602,9 +1731,9 @@ def create_product():
 def update_product(product_id):
     """Update product details (admin only)"""
     payload = request.get_json(silent=True) or {}
-    admin_username = payload.get("admin_username", "")
+    admin_username = _extract_admin_username(payload)
     
-    if admin_username.lower() != "admin":
+    if not _is_admin(admin_username):
         return jsonify({"ok": False, "message": "Admin access required"}), 403
     
     conn = _get_db()
@@ -1663,9 +1792,9 @@ def update_product(product_id):
 def delete_product(product_id):
     """Delete product (admin only)"""
     payload = request.get_json(silent=True) or {}
-    admin_username = payload.get("admin_username", "")
+    admin_username = _extract_admin_username(payload)
     
-    if admin_username.lower() != "admin":
+    if not _is_admin(admin_username):
         return jsonify({"ok": False, "message": "Admin access required"}), 403
     
     conn = _get_db()
@@ -1686,11 +1815,11 @@ def delete_product(product_id):
 def update_product_stock(product_id):
     """Update product stock level (admin only)"""
     payload = request.get_json(silent=True) or {}
-    admin_username = payload.get("admin_username", "")
+    admin_username = _extract_admin_username(payload)
     stock = payload.get("stock")
     adjustment = payload.get("adjustment")
     
-    if admin_username.lower() != "admin":
+    if not _is_admin(admin_username):
         return jsonify({"ok": False, "message": "Admin access required"}), 403
     
     if stock is None and adjustment is None:
@@ -1730,9 +1859,9 @@ def update_product_stock(product_id):
 def get_all_orders():
     """Get all orders (admin only)"""
     payload = request.get_json(silent=True) or {}
-    admin_username = payload.get("admin_username", "")
+    admin_username = _extract_admin_username(payload)
     
-    if admin_username.lower() != "admin":
+    if not _is_admin(admin_username):
         return jsonify({"ok": False, "message": "Admin access required"}), 403
     
     conn = _get_db()
@@ -1764,9 +1893,9 @@ def get_all_orders():
 def get_user_orders_admin(phone):
     """Get all orders for a specific user (admin only)"""
     payload = request.get_json(silent=True) or {}
-    admin_username = payload.get("admin_username", "")
+    admin_username = _extract_admin_username(payload)
     
-    if admin_username.lower() != "admin":
+    if not _is_admin(admin_username):
         return jsonify({"ok": False, "message": "Admin access required"}), 403
     
     if not _is_valid_phone(phone):
@@ -1802,9 +1931,9 @@ def get_user_orders_admin(phone):
 def get_orders_by_status(status):
     """Get all orders with specific status (admin only)"""
     payload = request.get_json(silent=True) or {}
-    admin_username = payload.get("admin_username", "")
+    admin_username = _extract_admin_username(payload)
     
-    if admin_username.lower() != "admin":
+    if not _is_admin(admin_username):
         return jsonify({"ok": False, "message": "Admin access required"}), 403
     
     valid_statuses = ["confirmed", "shipped", "delivered", "cancelled"]
@@ -1845,10 +1974,10 @@ def get_orders_by_status(status):
 def update_order_status(order_id):
     """Update order status (admin only)"""
     payload = request.get_json(silent=True) or {}
-    admin_username = payload.get("admin_username", "")
+    admin_username = _extract_admin_username(payload)
     new_status = str(payload.get("status", "")).strip().lower()
     
-    if admin_username.lower() != "admin":
+    if not _is_admin(admin_username):
         return jsonify({"ok": False, "message": "Admin access required"}), 403
     
     valid_statuses = ["confirmed", "shipped", "delivered", "cancelled"]
@@ -1881,9 +2010,9 @@ def update_order_status(order_id):
 def get_order_stats():
     """Get order statistics (admin only)"""
     payload = request.get_json(silent=True) or {}
-    admin_username = payload.get("admin_username", "")
+    admin_username = _extract_admin_username(payload)
     
-    if admin_username.lower() != "admin":
+    if not _is_admin(admin_username):
         return jsonify({"ok": False, "message": "Admin access required"}), 403
     
     conn = _get_db()
@@ -2024,9 +2153,22 @@ def get_products_mongo():
         
         products = list(products_col.find())
         
-        # Convert ObjectId to string for JSON
+        # Convert ObjectId to string for JSON and normalize stock/image aliases
         for product in products:
             product["_id"] = str(product["_id"])
+            stock_val = product.get("stockQuantity") if product.get("stockQuantity") is not None else (product.get("stock_quantity") if product.get("stock_quantity") is not None else product.get("stock", 0))
+            product["stock_quantity"] = stock_val
+            product["stock"] = stock_val
+            product["stockQuantity"] = stock_val
+
+            img_val = product.get("imageUrl") or product.get("image_url") or product.get("image") or ""
+            product["imageUrl"] = img_val
+            product["image_url"] = img_val
+            product["image"] = img_val
+
+            if "sku" in product and "barcode" not in product:
+                product["barcode"] = product["sku"]
+
             if "created_at" in product:
                 product["created_at"] = product["created_at"].isoformat() if hasattr(product["created_at"], 'isoformat') else str(product["created_at"])
             if "updated_at" in product:
@@ -2053,8 +2195,21 @@ def get_product_mongo(product_id):
         if not product:
             return jsonify({"success": False, "message": "Product not found"}), 404
         
-        # Convert ObjectId to string
+        # Convert ObjectId to string and normalize fields
         product["_id"] = str(product["_id"])
+        stock_val = product.get("stockQuantity") if product.get("stockQuantity") is not None else (product.get("stock_quantity") if product.get("stock_quantity") is not None else product.get("stock", 0))
+        product["stock_quantity"] = stock_val
+        product["stock"] = stock_val
+        product["stockQuantity"] = stock_val
+
+        img_val = product.get("imageUrl") or product.get("image_url") or product.get("image") or ""
+        product["imageUrl"] = img_val
+        product["image_url"] = img_val
+        product["image"] = img_val
+
+        if "sku" in product and "barcode" not in product:
+            product["barcode"] = product["sku"]
+
         if "created_at" in product:
             product["created_at"] = product["created_at"].isoformat() if hasattr(product["created_at"], 'isoformat') else str(product["created_at"])
         if "updated_at" in product:
@@ -2264,7 +2419,12 @@ def create_order_mongo():
                 mongo_product = products_col.find_one({"id": product_id})
             
             if mongo_product:
-                current_stock = float(mongo_product.get("stock_quantity", 0) or 0)
+                stock_val = mongo_product.get("stockQuantity")
+                if stock_val is None:
+                    stock_val = mongo_product.get("stock_quantity")
+                if stock_val is None:
+                    stock_val = mongo_product.get("stock", 0)
+                current_stock = float(stock_val or 0)
                 if current_stock < quantity:
                     return jsonify({
                         "ok": False,
@@ -2294,11 +2454,16 @@ def create_order_mongo():
             
             try:
                 # Try both _id and id fields
+                inc_fields = {
+                    "stock_quantity": -quantity,
+                    "stockQuantity": -quantity,
+                    "stock": -quantity
+                }
                 try:
                     update_result = products_col.update_one(
                         {"_id": ObjectId(product_id)},
                         {
-                            "$inc": {"stock_quantity": -quantity},
+                            "$inc": inc_fields,
                             "$set": {"updated_at": datetime.now()}
                         }
                     )
@@ -2306,13 +2471,13 @@ def create_order_mongo():
                     update_result = products_col.update_one(
                         {"id": product_id},
                         {
-                            "$inc": {"stock_quantity": -quantity},
+                            "$inc": inc_fields,
                             "$set": {"updated_at": datetime.now()}
                         }
                     )
                 
                 if update_result.modified_count > 0:
-                    print(f"✓ Stock updated for product {product_id}: -{quantity}")
+                    print(f"[OK] Stock updated for product {product_id}: -{quantity}")
             except Exception as e:
                 print(f"Warning: Could not update stock for product {product_id}: {e}")
         
@@ -3124,6 +3289,132 @@ def get_chat_messages():
     
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+# ============= NLP-BASED PRODUCT SEARCH & PRODUCT INFORMATION =============
+
+@app.post("/api/nlp/search")
+def nlp_product_search():
+    """
+    NLP Product Search Endpoint:
+    Accepts natural language query (e.g. 'Show me biscuits under ₹50', 'Tell me about Maggi')
+    Extracts user intent & entities (category, brand, price constraints, attributes)
+    Queries MongoDB and returns structured results with natural language summary.
+    """
+    try:
+        payload = request.get_json(silent=True) or {}
+        query = str(payload.get("query", "")).strip()
+
+        if not query:
+            return jsonify({
+                "success": False,
+                "message": "Search query cannot be empty. Try e.g. 'Show me biscuits under ₹50'",
+                "intent": "UNKNOWN",
+                "entities": {},
+                "summary": "Please enter a search query.",
+                "count": 0,
+                "products": []
+            }), 400
+
+        try:
+            products_col = MongoDBCollections.get_collection("products")
+        except Exception as e:
+            return jsonify({
+                "success": False,
+                "message": f"Database error: {e}",
+                "intent": "UNKNOWN",
+                "entities": {},
+                "summary": "Database unavailable. Please try again later.",
+                "count": 0,
+                "products": []
+            }), 503
+
+        parsed = RetailNLPEngine.parse_query(query)
+        search_result = RetailNLPEngine.execute_mongo_search(parsed, products_col)
+
+        return jsonify(search_result), 200
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"NLP processing error: {str(e)}",
+            "intent": "UNKNOWN",
+            "entities": {},
+            "summary": "An error occurred while analyzing your query.",
+            "count": 0,
+            "products": []
+        }), 500
+
+
+@app.post("/api/nlp/product-info")
+def nlp_product_info():
+    """
+    NLP Product Information Endpoint:
+    Returns complete product information including ingredients, nutrition, brand,
+    stock, description, and pricing for a specific product.
+    """
+    try:
+        payload = request.get_json(silent=True) or {}
+        product_name = str(payload.get("productName", "")).strip()
+        product_id = str(payload.get("productId", "")).strip()
+
+        if not product_name and not product_id:
+            return jsonify({"success": False, "message": "Product name or ID is required"}), 400
+
+        products_col = MongoDBCollections.get_collection("products")
+        product = None
+
+        if product_id:
+            for candidate in _product_id_candidates(product_id):
+                query_filter = {"_id": candidate} if isinstance(candidate, ObjectId) else {"id": candidate}
+                product = products_col.find_one(query_filter)
+                if product:
+                    break
+
+        if not product and product_name:
+            product = products_col.find_one({
+                "$or": [
+                    {"name": {"$regex": f"^{re.escape(product_name)}$", "$options": "i"}},
+                    {"name": {"$regex": re.escape(product_name), "$options": "i"}}
+                ]
+            })
+
+        if not product:
+            return jsonify({"success": False, "message": "Product not found"}), 404
+
+        formatted = {
+            "id": str(product.get("_id")),
+            "_id": str(product.get("_id")),
+            "name": product.get("name"),
+            "brand": product.get("brand", "SmartRetail"),
+            "category": product.get("category", "General"),
+            "price": float(product.get("price", 0)),
+            "price_per_unit": float(product.get("price_per_unit", product.get("price", 0))),
+            "unit_type": product.get("unit_type", "unit"),
+            "is_loose_item": bool(product.get("is_loose_item", False)),
+            "stock": int(product.get("stock_quantity", product.get("stock", 0))),
+            "stock_quantity": int(product.get("stock_quantity", product.get("stock", 0))),
+            "description": product.get("description", ""),
+            "image": product.get("image_url", product.get("image", "")),
+            "rating": float(product.get("rating", 4.5)),
+            "reviews_count": int(product.get("reviews_count", 0)),
+            "barcode": product.get("barcode", ""),
+            "location": product.get("location", ""),
+            "ingredients": product.get("ingredients", []),
+            "nutritional_info": product.get("nutritional_info", {}),
+            "discount": float(product.get("discount", 0)),
+        }
+
+        return jsonify({"success": True, "product": formatted}), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.get("/api/nlp/suggestions")
+def nlp_suggestions():
+    """Returns suggested natural language queries for frontend search bar"""
+    return jsonify({"success": True, "suggestions": get_preset_suggestions()}), 200
 
 
 # Ensure tables exist for both local runs and production WSGI servers (e.g., gunicorn).

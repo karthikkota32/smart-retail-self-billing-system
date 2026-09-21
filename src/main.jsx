@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import { LanguageProvider } from './context/LanguageContext.jsx'
 
 // Prevent zoom via keyboard shortcuts (Ctrl/Cmd +, -, =)
 document.addEventListener('keydown', (e) => {
@@ -19,6 +20,8 @@ document.addEventListener('wheel', (e) => {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <LanguageProvider>
+      <App />
+    </LanguageProvider>
   </StrictMode>,
 )

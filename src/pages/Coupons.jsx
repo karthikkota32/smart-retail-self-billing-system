@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MasterNavbar from "../components/MasterNavbar";
 import { getCoupons } from "../services/api";
+import { useLanguage } from "../context/LanguageContext";
 import "../styles/Coupons.css";
 
 function Coupons() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const userPhone = localStorage.getItem("userPhone");
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,15 +66,15 @@ function Coupons() {
       <MasterNavbar />
 
       <div className="coupons-header">
-        <h1>🎟️ Discount Coupons</h1>
-        <p>Save more with our exclusive offers</p>
+        <h1>🎟️ {t("coupons.title", "Discount Coupons")}</h1>
+        <p>{t("coupons.subtitle", "Save more with our exclusive offers")}</p>
       </div>
 
       <div className="coupons-container">
         {activeCoupons.length === 0 ? (
           <div className="empty-coupons">
-            <h2>🎉 No Active Coupons</h2>
-            <p>Check back later for exclusive discount offers</p>
+            <h2>🎉 {t("coupons.expired_coupons", "No Active Coupons")}</h2>
+            <p>{t("coupons.subtitle", "Check back later for exclusive discount offers")}</p>
           </div>
         ) : (
           <div className="coupons-grid">
@@ -80,7 +82,7 @@ function Coupons() {
               <div key={coupon.id} className="coupon-card">
                 <div className="coupon-header">
                   <h3 className="coupon-code">{coupon.code}</h3>
-                  <span className="discount-badge">{coupon.discountPercentage}% OFF</span>
+                  <span className="discount-badge">{coupon.discountPercentage}% {t("coupons.off", "OFF")}</span>
                 </div>
 
                 <p className="coupon-description">
@@ -90,19 +92,19 @@ function Coupons() {
                 <div className="coupon-details">
                   {coupon.minPurchase && (
                     <div className="detail-item">
-                      <span className="detail-label">Min Purchase:</span>
+                      <span className="detail-label">{t("coupons.min_purchase", "Min Purchase")}:</span>
                       <span className="detail-value">₹{coupon.minPurchase}</span>
                     </div>
                   )}
                   {coupon.expiryDate && (
                     <div className="detail-item">
-                      <span className="detail-label">Expires:</span>
+                      <span className="detail-label">{t("coupons.expiry_date", "Expires")}:</span>
                       <span className="detail-value">{new Date(coupon.expiryDate).toLocaleDateString()}</span>
                     </div>
                   )}
                   {coupon.usageCount !== undefined && (
                     <div className="detail-item">
-                      <span className="detail-label">Uses:</span>
+                      <span className="detail-label">{t("coupons.usage_limit", "Uses")}:</span>
                       <span className="detail-value">{coupon.usageCount || 0}</span>
                     </div>
                   )}
@@ -112,7 +114,7 @@ function Coupons() {
                   onClick={() => copyCouponCode(coupon.code)}
                   className={`btn-copy-code ${copiedCode === coupon.code ? "copied" : ""}`}
                 >
-                  {copiedCode === coupon.code ? "✅ Copied!" : "📋 Copy Code"}
+                  {copiedCode === coupon.code ? `✅ ${t("coupons.copied", "Copied!")}` : `📋 ${t("coupons.copy_code", "Copy Code")}`}
                 </button>
               </div>
             ))}

@@ -1,0 +1,302 @@
+[
+  {
+    "name": "Amul Taaza Homogenised Toned Milk",
+    "category": "Dairy",
+    "price": 54.00,
+    "unit": "litre",
+    "description": "Pasteurised toned milk with 3.0% fat and 8.5% SNF. Long shelf life Tetra Pak.",
+    "imageUrl": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-DAIRY-001",
+    "location": {
+      "aisle": "D1",
+      "shelf": "1"
+    },
+    "stockQuantity": 45,
+    "lowStockThreshold": 10
+  },
+  {
+    "name": "Amul Pasteurised Butter",
+    "category": "Dairy",
+    "price": 275.00,
+    "unit": "piece",
+    "description": "Delicious salted butter made from fresh cream. Net weight 500g.",
+    "imageUrl": "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-DAIRY-002",
+    "location": {
+      "aisle": "D1",
+      "shelf": "2"
+    },
+    "stockQuantity": 28,
+    "lowStockThreshold": 8
+  },
+  {
+    "name": "Mother Dairy Classic Fresh Paneer",
+    "category": "Dairy",
+    "price": 92.00,
+    "unit": "piece",
+    "description": "Rich in protein, soft and smooth Indian cottage cheese. Net weight 200g.",
+    "imageUrl": "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-DAIRY-003",
+    "location": {
+      "aisle": "D1",
+      "shelf": "3"
+    },
+    "stockQuantity": 15,
+    "lowStockThreshold": 5
+  },
+  {
+    "name": "Britannia Cheese Slices",
+    "category": "Dairy",
+    "price": 145.00,
+    "unit": "piece",
+    "description": "Processed cheese slices packed with calcium and protein. 10 slices pack (200g).",
+    "imageUrl": "https://images.unsplash.com/photo-1624806992066-5ffcf7ca186b?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-DAIRY-004",
+    "location": {
+      "aisle": "D2",
+      "shelf": "1"
+    },
+    "stockQuantity": 22,
+    "lowStockThreshold": 6
+  },
+  {
+    "name": "Epigamia Natural Greek Yogurt",
+    "category": "Dairy",
+    "price": 40.00,
+    "unit": "piece",
+    "description": "High protein strained Greek yogurt with zero preservatives. 100g cup.",
+    "imageUrl": "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-DAIRY-005",
+    "location": {
+      "aisle": "D2",
+      "shelf": "2"
+    },
+    "stockQuantity": 3,
+    "lowStockThreshold": 8
+  },
+  {
+    "name": "Nestle Milkmaid Sweetened Condensed Milk",
+    "category": "Dairy",
+    "price": 144.00,
+    "unit": "piece",
+    "description": "Rich and sweet condensed milk ideal for desserts and baking. 400g tin.",
+    "imageUrl": "https://images.unsplash.com/photo-1528750997573-59b89d56f4f7?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-DAIRY-006",
+    "location": {
+      "aisle": "D2",
+      "shelf": "3"
+    },
+    "stockQuantity": 19,
+    "lowStockThreshold": 5
+  },
+  {
+    "name": "Amul Pure Cow Ghee",
+    "category": "Dairy",
+    "price": 615.00,
+    "unit": "litre",
+    "description": "Traditional aromatic cow milk clarified butter in 1 litre pouch pack.",
+    "imageUrl": "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-DAIRY-007",
+    "location": {
+      "aisle": "D1",
+      "shelf": "4"
+    },
+    "stockQuantity": 2,
+    "lowStockThreshold": 5
+  },
+  {
+    "name": "Nandini GoodLife Pasteurised Toned Milk",
+    "category": "Dairy",
+    "price": 56.00,
+    "unit": "litre",
+    "description": "Homogenised toned milk fortified with Vitamin A and D. 1 litre pack.",
+    "imageUrl": "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-DAIRY-008",
+    "location": {
+      "aisle": "D1",
+      "shelf": "1"
+    },
+    "stockQuantity": 35,
+    "lowStockThreshold": 10
+  },
+  {
+    "name": "Gowardhan Fresh Block Paneer",
+    "category": "Dairy",
+    "price": 420.00,
+    "unit": "kg",
+    "description": "Traditional 100% cow milk block paneer sold by weight.",
+    "imageUrl": "https://images.unsplash.com/photo-1596797038530-2c107229654b?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-DAIRY-009",
+    "location": {
+      "aisle": "D2",
+      "shelf": "4"
+    },
+    "stockQuantity": 12,
+    "lowStockThreshold": 4
+  },
+  {
+    "name": "Milky Mist Thick Natural Curd",
+    "category": "Dairy",
+    "price": 45.00,
+    "unit": "piece",
+    "description": "Thick and creamy Dahi made from fresh farm milk. 400g tub.",
+    "imageUrl": "https://images.unsplash.com/photo-1571212515416-fef01fc43637?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-DAIRY-010",
+    "location": {
+      "aisle": "D1",
+      "shelf": "2"
+    },
+    "stockQuantity": 4,
+    "lowStockThreshold": 6
+  },
+  {
+    "name": "Aashirvaad Superior MP Sharbati Atta",
+    "category": "Basic Grocery",
+    "price": 285.00,
+    "unit": "kg",
+    "description": "100% whole wheat chakki atta sourced from the fields of Madhya Pradesh. 5kg pack.",
+    "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-GROC-001",
+    "location": {
+      "aisle": "G1",
+      "shelf": "1"
+    },
+    "stockQuantity": 30,
+    "lowStockThreshold": 8
+  },
+  {
+    "name": "Daawat Rozana Super Basmati Rice",
+    "category": "Basic Grocery",
+    "price": 380.00,
+    "unit": "kg",
+    "description": "Aromatic long grain basmati rice ideal for everyday biryani and pulao. 5kg bag.",
+    "imageUrl": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-GROC-002",
+    "location": {
+      "aisle": "G1",
+      "shelf": "2"
+    },
+    "stockQuantity": 25,
+    "lowStockThreshold": 6
+  },
+  {
+    "name": "Tata Salt Vacuum Evaporated Iodized Salt",
+    "category": "Basic Grocery",
+    "price": 28.00,
+    "unit": "kg",
+    "description": "India's pioneer branded vacuum evaporated salt with essential iodine. 1kg pack.",
+    "imageUrl": "https://images.unsplash.com/photo-1518110925495-5fe2fda0442c?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-GROC-003",
+    "location": {
+      "aisle": "G1",
+      "shelf": "3"
+    },
+    "stockQuantity": 60,
+    "lowStockThreshold": 15
+  },
+  {
+    "name": "Fortune Sunlite Refined Sunflower Oil",
+    "category": "Basic Grocery",
+    "price": 145.00,
+    "unit": "litre",
+    "description": "Enriched with Vitamins A and D, light and healthy cooking oil. 1 litre pouch.",
+    "imageUrl": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-GROC-004",
+    "location": {
+      "aisle": "G2",
+      "shelf": "1"
+    },
+    "stockQuantity": 40,
+    "lowStockThreshold": 10
+  },
+  {
+    "name": "Tata Sampann Unpolished Toor Dal",
+    "category": "Basic Grocery",
+    "price": 178.00,
+    "unit": "kg",
+    "description": "Nutritious and unpolished arhar dal with natural wholesome nutrients. 1kg pack.",
+    "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-GROC-005",
+    "location": {
+      "aisle": "G2",
+      "shelf": "2"
+    },
+    "stockQuantity": 20,
+    "lowStockThreshold": 5
+  },
+  {
+    "name": "24 Mantra Organic Chana Dal",
+    "category": "Basic Grocery",
+    "price": 135.00,
+    "unit": "kg",
+    "description": "Pesticide-free certified organic split chickpea lentils. 1kg pack.",
+    "imageUrl": "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-GROC-006",
+    "location": {
+      "aisle": "G2",
+      "shelf": "3"
+    },
+    "stockQuantity": 5,
+    "lowStockThreshold": 6
+  },
+  {
+    "name": "Maggi 2-Minute Masala Instant Noodles",
+    "category": "Basic Grocery",
+    "price": 58.00,
+    "unit": "piece",
+    "description": "India's favorite instant noodle with signature tastemaker. Pack of 4 (280g).",
+    "imageUrl": "https://images.unsplash.com/photo-1612927601601-6638404737ce?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-GROC-007",
+    "location": {
+      "aisle": "G3",
+      "shelf": "1"
+    },
+    "stockQuantity": 50,
+    "lowStockThreshold": 12
+  },
+  {
+    "name": "Everest Pure Turmeric Powder",
+    "category": "Basic Grocery",
+    "price": 62.00,
+    "unit": "piece",
+    "description": "Vibrant aromatic turmeric spice ground from premium Erode finger roots. 200g carton.",
+    "imageUrl": "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-GROC-008",
+    "location": {
+      "aisle": "G3",
+      "shelf": "2"
+    },
+    "stockQuantity": 4,
+    "lowStockThreshold": 10
+  },
+  {
+    "name": "Madhur Pure & Hygienic Refined Sugar",
+    "category": "Basic Grocery",
+    "price": 52.00,
+    "unit": "kg",
+    "description": "100% sulphurless refined sparkling white crystal sugar. 1kg pouch.",
+    "imageUrl": "https://images.unsplash.com/photo-1587132137056-bfbf0166836e?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-GROC-009",
+    "location": {
+      "aisle": "G3",
+      "shelf": "3"
+    },
+    "stockQuantity": 40,
+    "lowStockThreshold": 10
+  },
+  {
+    "name": "Tata Tea Gold Rich Taste & Aroma",
+    "category": "Basic Grocery",
+    "price": 310.00,
+    "unit": "piece",
+    "description": "Carefully selected CTC granules gently blended with 15% long tea leaves. 500g pack.",
+    "imageUrl": "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=500&auto=format&fit=crop&q=60",
+    "sku": "SKU-GROC-010",
+    "location": {
+      "aisle": "G3",
+      "shelf": "4"
+    },
+    "stockQuantity": 18,
+    "lowStockThreshold": 5
+  }
+]

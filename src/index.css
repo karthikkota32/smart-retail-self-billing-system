@@ -30,6 +30,23 @@ html, body, #root {
   -moz-osx-font-smoothing: grayscale;
 }
 
+body.lang-te,
+[lang="te"],
+.font-telugu {
+  font-family: 'Noto Sans Telugu', system-ui, -apple-system, sans-serif;
+}
+
+body.lang-hi,
+[lang="hi"],
+.font-hindi {
+  font-family: 'Noto Sans Devanagari', system-ui, -apple-system, sans-serif;
+}
+
+body.lang-en,
+[lang="en"] {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
 a {
   font-weight: 500;
   color: #28a745;

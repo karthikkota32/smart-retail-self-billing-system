@@ -22,7 +22,7 @@
 - Visit: https://www.mongodb.com/cloud/atlas
 - Create free account
 - Create a cluster
-- Get connection string: `mongodb+srv://username:password@cluster.mongodb.net/smart_retail`
+- Get connection string: `mongodb+srv://username:password@cluster.mongodb.net`
 
 ---
 
@@ -36,10 +36,11 @@ FLASK_DEBUG=1
 ALLOWED_ORIGINS=http://localhost:5173
 
 # Local MongoDB (Development)
-MONGO_URI=mongodb://localhost:27017/smart_retail
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB_NAME=groceryDB
 
 # OR MongoDB Atlas (Production)
-# MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/smart_retail
+# MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net
 
 # Email Configuration
 EMAIL_SENDER=your-email@gmail.com

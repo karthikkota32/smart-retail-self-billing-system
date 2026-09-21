@@ -1,0 +1,89 @@
+### Product Catalog & Inventory Module HTTP Requests
+@baseUrl = http://localhost:5001
+
+### 1. Health Check
+GET {{baseUrl}}/health
+
+### 2. Get All Products
+GET {{baseUrl}}/api/products
+
+### 3. Filter Products by Category (Dairy)
+GET {{baseUrl}}/api/products?category=Dairy
+
+### 4. Search Products (by query)
+GET {{baseUrl}}/api/products/search?q=milk
+
+### 5. Create a New Product
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Nandini Curd 500g",
+  "category": "Dairy",
+  "price": 32.00,
+  "unit": "piece",
+  "description": "Pure and fresh fermented milk curd",
+  "sku": "SKU-DAIRY-050",
+  "location": {
+    "aisle": "D1",
+    "shelf": "2"
+  },
+  "stockQuantity": 20,
+  "lowStockThreshold": 5
+}
+
+### 6. Get Product by SKU
+GET {{baseUrl}}/api/products/SKU-DAIRY-050
+
+### 7. Update Shelf/Aisle Location (Smart Store Navigation)
+PATCH {{baseUrl}}/api/products/SKU-DAIRY-050/location
+Content-Type: application/json
+
+{
+  "aisle": "D2",
+  "shelf": "3"
+}
+
+### 8. Restock Stock (Increment)
+PATCH {{baseUrl}}/api/inventory/SKU-DAIRY-050/stock
+Content-Type: application/json
+
+{
+  "action": "increment",
+  "amount": 10
+}
+
+### 9. Billing Sale Deduction (Decrement)
+PATCH {{baseUrl}}/api/inventory/SKU-DAIRY-050/stock
+Content-Type: application/json
+
+{
+  "action": "decrement",
+  "amount": 5
+}
+
+### 10. List Low-Stock Products
+GET {{baseUrl}}/api/inventory/low-stock
+
+### 11. Quick Inventory Status (Billing Cart Lookup)
+GET {{baseUrl}}/api/inventory/status/SKU-DAIRY-050
+
+### 12. Worker Management - List Workers
+GET {{baseUrl}}/api/workers
+
+### 13. Worker Management - Add Worker
+POST {{baseUrl}}/api/workers
+Content-Type: application/json
+
+{
+  "name": "Suresh Raina",
+  "role": "Inventory Specialist",
+  "contact": {
+    "phone": "9811223344",
+    "email": "suresh.raina@smartgrocery.com"
+  },
+  "assignedSection": {
+    "aisle": "G1",
+    "section": "Staples & Grains"
+  }
+}

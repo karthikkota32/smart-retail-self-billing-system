@@ -4,13 +4,16 @@ import MasterNavbar from "../components/MasterNavbar";
 import { useRealtimeProducts } from "../hooks/useRealtimeProducts";
 import { StockStatusBadge, StockIndicator, AddToCartButton } from "../components/StockStatus";
 import CartNotification from "../components/CartNotification";
+import SmartNlpSearch from "../components/SmartNlpSearch";
 import { readCartItems, addItemToCart, normalizeProductId, getQuantityStep, sanitizeQuantity } from "../utils/cartUtils";
+import { useLanguage } from "../context/LanguageContext";
 import "./Shop.css";
 
 const FALLBACK_PRODUCT_IMAGE = "https://placehold.co/600x600/e5e7eb/6b7280?text=No+Image";
 
 function Shop() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const userPhone = localStorage.getItem("userPhone") || "guest";
 
@@ -113,7 +116,7 @@ function Shop() {
   const addToCart = (item, e) => {
     if (e?.stopPropagation) e.stopPropagation();
 
-    const stock = item.stock_quantity !== undefined ? item.stock_quantity : item.stock;
+    const stock = item.stockQuantity !== undefined ? item.stockQuantity : (item.stock_quantity !== undefined ? item.stock_quantity : item.stock);
     if (Number(stock) <= 0) {
       setNotificationMessage("This item is out of stock");
       setNotificationType("error");
@@ -245,12 +248,16 @@ function Shop() {
     >
       <MasterNavbar />
 
+      <div style={{ maxWidth: "1400px", margin: "20px auto 0 auto", padding: "0 15px" }}>
+        <SmartNlpSearch onAddToCart={addToCart} />
+      </div>
+
       <div className="shop-toolbar">
         <div className="shop-toolbar-grid">
           <div className="shop-toolbar-row">
             <input
               className="shop-search-input"
-              placeholder="Search groceries..."
+              placeholder={t("shop.search_placeholder", "Search groceries...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -258,20 +265,20 @@ function Shop() {
               className="shop-toolbar-btn"
               onClick={() => setSearch("")}
             >
-              Clear
+              {t("common.cancel", "Clear")}
             </button>
             <button
               className="shop-toolbar-btn shop-toolbar-btn-primary"
               onClick={refreshProducts}
               title="Refresh latest stock status from server"
             >
-              🔄 Refresh
+              🔄 {t("common.refresh", "Refresh")}
             </button>
             <button
               className="shop-toolbar-btn shop-toolbar-btn-secondary"
               onClick={() => setShowFilters(true)}
             >
-              Filters
+              {t("common.filter", "Filters")}
             </button>
             <button
               className="shop-toolbar-btn shop-toolbar-btn-warning"
@@ -282,7 +289,7 @@ function Shop() {
           </div>
         </div>
         <p className="shop-summary">
-          🛒 Cart ({cart.length}) | Showing {sortedProducts.length} items
+          🛒 {t("nav.cart", "Cart")} ({cart.length}) | {t("dashboard.cart_items", "Showing")} {sortedProducts.length} {t("dashboard.cart_items", "items")}
         </p>
       </div>
 
@@ -500,10 +507,14 @@ function Shop() {
                       <AddToCartButton product={item} onClick={(e) => addToCart(item, e)} />
                     </div>
 
-                    {/* Quick View Button */}
+                    {/* View Product Details Button */}
                     <button
                       className="btn-view"
-                      onClick={(e) => openQuickView(item, e)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/product/${item.id}`);
+                      }}
+                      title="View full product details"
                     >
                       <svg
                         width="16"

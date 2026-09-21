@@ -1,9 +1,6 @@
-<<<<<<< HEAD
-# project
-=======
-# Smart Retail - React Admin Dashboard
+# Smart Retail - React Self-Billing & Admin Dashboard
 
-A modern, real-time e-commerce admin dashboard built with React, Vite, Flask, and MongoDB.
+A modern, real-time e-commerce and retail self-billing platform built with React, Vite, Flask, and MongoDB.
 
 ## 🚀 Features
 

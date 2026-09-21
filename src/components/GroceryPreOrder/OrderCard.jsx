@@ -41,6 +41,19 @@ const OrderCard = ({ order, onStatusChange, onPaymentProcess, onDelete }) => {
     return colors[status] || '#6c757d';
   };
 
+  /**
+   * Format order item for display
+   */
+  const formatOrderItem = (item) => {
+    if (!item) return '';
+    if (typeof item === 'string') return item;
+    const name = item.name || 'Item';
+    const quantity = item.quantity || 1;
+    const unit = item.is_loose_item ? (item.unit_type || 'unit') : 'item';
+    const unitText = item.is_loose_item ? unit : (Number(quantity) > 1 ? 'items' : 'item');
+    return `${name} × ${quantity} ${unitText}`;
+  };
+
   return (
     <div className="order-card">
       {/* Order Header */}
@@ -61,7 +74,7 @@ const OrderCard = ({ order, onStatusChange, onPaymentProcess, onDelete }) => {
       {/* Order Details */}
       <div className="order-details">
         <div className="detail-section">
-          <h4>� Customer Details</h4>
+          <h4>👤 Customer Details</h4>
           <div className="detail-row">
             <label>📱 Phone:</label>
             <span className="value">{order.phone || 'N/A'}</span>
@@ -69,12 +82,12 @@ const OrderCard = ({ order, onStatusChange, onPaymentProcess, onDelete }) => {
         </div>
 
         <div className="detail-section">
-          <h4>�📦 Items ({order.items.length})</h4>
+          <h4>📦 Items ({order.items.length})</h4>
           <div className="items-list">
             {order.items.map((item, index) => (
               <div key={index} className="item-entry">
                 <span className="item-number">{index + 1}.</span>
-                <span className="item-name">{item}</span>
+                <span className="item-name">{formatOrderItem(item)}</span>
               </div>
             ))}
           </div>

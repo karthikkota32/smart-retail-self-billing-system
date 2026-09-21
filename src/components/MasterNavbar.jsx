@@ -1,11 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { readCartItems } from "../utils/cartUtils";
+import { useLanguage } from "../context/LanguageContext";
+import LanguageSelector from "./LanguageSelector";
 import "../styles/MasterNavbar.css";
 
 function MasterNavbar(){
 
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const userRole = localStorage.getItem("userRole");
   const [cartCount,setCartCount] = useState(()=>{
     const userPhone = localStorage.getItem("userPhone") || "guest";
@@ -71,7 +74,7 @@ function MasterNavbar(){
     <nav className="master-navbar" ref={navRef}>
       <div className="navbar-container">
         <div className="navbar-brand" onClick={() => handleNavClick("/dashboard")}>
-          <span className="logo">🛒 SmartRetail</span>
+          <span className="logo">🛒 {t('nav.brand', 'SmartRetail')}</span>
         </div>
 
         <button className="menu-toggle" onClick={() => setShowMenu(!showMenu)}>
@@ -86,7 +89,7 @@ function MasterNavbar(){
                 onClick={() => handleNavClick("/admin")}
                 title="Admin Dashboard"
               >
-                📊 Admin
+                📊 {t('nav.admin', 'Admin')}
               </button>
             )}
             <button 
@@ -94,7 +97,7 @@ function MasterNavbar(){
               onClick={() => handleNavClick("/shop")}
               title="Browse and shop products"
             >
-              🛍️ Shop
+              🛍️ {t('nav.shop', 'Shop')}
             </button>
 
             <button 
@@ -102,7 +105,7 @@ function MasterNavbar(){
               onClick={() => handleNavClick("/grocery-preorder")}
               title="Pre-order groceries with time slots"
             >
-              🥕 Grocery Pre-Order
+              🥕 {t('nav.preorder', 'Grocery Pre-Order')}
             </button>
 
             <button 
@@ -110,7 +113,7 @@ function MasterNavbar(){
               onClick={() => handleNavClick("/dashboard")}
               title="Dashboard"
             >
-              📈 Dashboard
+              📈 {t('nav.dashboard', 'Dashboard')}
             </button>
 
             <button 
@@ -118,7 +121,7 @@ function MasterNavbar(){
               onClick={() => handleNavClick("/wishlist")}
               title="View your wishlist"
             >
-              Wishlist
+              ❤️ {t('nav.wishlist', 'Wishlist')}
             </button>
 
             <button 
@@ -126,7 +129,7 @@ function MasterNavbar(){
               onClick={() => handleNavClick("/coupons")}
               title="View available coupons"
             >
-              🎟️ Coupons
+              🎟️ {t('nav.coupons', 'Coupons')}
             </button>
 
             <button 
@@ -134,7 +137,7 @@ function MasterNavbar(){
               onClick={() => handleNavClick("/history")}
               title="View your purchase history"
             >
-              📦 History
+              📦 {t('nav.history', 'History')}
             </button>
 
             <button 
@@ -142,7 +145,7 @@ function MasterNavbar(){
               onClick={() => handleNavClick("/profile")}
               title="View and edit your profile"
             >
-              👤 Profile
+              👤 {t('nav.profile', 'Profile')}
             </button>
           </div>
 
@@ -154,14 +157,14 @@ function MasterNavbar(){
                   onClick={() => handleNavClick("/cart")}
                   title="Shopping Cart"
                 >
-                  🛒 Cart ({cartCount})
+                  🛒 {t('nav.cart', 'Cart')} ({cartCount})
                 </button>
 
                 <button 
                   className="nav-link logout-btn"
                   onClick={logout}
                 >
-                  🚪 Logout
+                  🚪 {t('nav.logout', 'Logout')}
                 </button>
               </>
             ) : (
@@ -170,13 +173,38 @@ function MasterNavbar(){
                 onClick={() => handleNavClick("/")}
                 title="Login to your account"
               >
-                🔐 Login
+                🔐 {t('nav.login', 'Login')}
               </button>
             )}
           </div>
         </div>
 
         <div className="navbar-right">
+          {userRole === "admin" && (
+            <button
+              onClick={() => handleNavClick("/admin")}
+              style={{
+                background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+                color: "white",
+                border: "none",
+                borderRadius: "20px",
+                padding: "6px 14px",
+                fontSize: "13px",
+                fontWeight: "700",
+                cursor: "pointer",
+                boxShadow: "0 2px 8px rgba(99, 102, 241, 0.3)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px"
+              }}
+              title="Open Admin Dashboard"
+            >
+              👨‍💼 {t('nav.admin_panel', 'Admin Panel')}
+            </button>
+          )}
+
+          <LanguageSelector variant="navbar" />
+
           <button 
             className="cart-btn"
             onClick={() => handleNavClick("/cart")}
@@ -186,6 +214,7 @@ function MasterNavbar(){
           </button>
           <span className="user-info">
             {localStorage.getItem("username")}
+            {userRole === "admin" && " (Admin)"}
           </span>
         </div>
       </div>

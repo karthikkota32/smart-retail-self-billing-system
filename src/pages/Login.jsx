@@ -1,10 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { loginUserMongo, registerUserMongo } from "../services/api";
+import { useLanguage } from "../context/LanguageContext";
+import LanguageSelector from "../components/LanguageSelector";
 
 function Login() {
 
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const [username, setUsername] = useState("");
   const [name, setName] = useState("");
@@ -206,7 +209,7 @@ function Login() {
               lineHeight: "1.2",
             }}
           >
-            {mode === "register" ? "Create Account" : "Smart Retail"}
+            {mode === "register" ? t("auth.create_account", "Create Account") : t("app.title", "Smart Retail")}
           </h2>
           <p
             style={{
@@ -217,13 +220,13 @@ function Login() {
               lineHeight: "1.6",
             }}
           >
-            {mode === "register" ? "Join our community" : "Sign in to continue"}
+            {mode === "register" ? t("auth.register_sub", "Join our community") : t("auth.login_sub", "Sign in to continue")}
           </p>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
           <input
-            placeholder="Username"
+            placeholder={t("auth.enter_username", "Username")}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             type="text"
@@ -232,21 +235,21 @@ function Login() {
           {mode === "register" && (
             <>
               <input
-                placeholder="Full Name"
+                placeholder={t("auth.enter_name", "Full Name")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 type="text"
               />
 
               <input
-                placeholder="10-digit Phone Number"
+                placeholder={t("auth.enter_phone", "10-digit Phone Number")}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 type="text"
               />
 
               <input
-                placeholder="Email (Optional)"
+                placeholder={t("auth.enter_email", "Email (Optional)")}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -256,7 +259,7 @@ function Login() {
 
           <input
             type="password"
-            placeholder="Password"
+            placeholder={t("auth.enter_password", "Password")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -288,7 +291,7 @@ function Login() {
                 opacity: loading ? 0.7 : 1,
               }}
             >
-              {loading ? "Creating Account..." : "Create Account"}
+              {loading ? t("auth.registering", "Creating Account...") : t("auth.register_btn", "Create Account")}
             </button>
           ) : (
             <button
@@ -300,7 +303,32 @@ function Login() {
                 opacity: loading ? 0.7 : 1,
               }}
             >
-              {loading ? "Signing In..." : "Login"}
+              {loading ? t("auth.signing_in", "Signing In...") : t("auth.login_btn", "Login")}
+            </button>
+          )}
+
+          {mode === "login" && (
+            <button
+              type="button"
+              onClick={() => {
+                setUsername("admin");
+                setPassword("admin123");
+              }}
+              style={{
+                marginTop: "12px",
+                background: "#f8fafc",
+                color: "#6366f1",
+                border: "1.5px dashed #6366f1",
+                borderRadius: "10px",
+                padding: "10px",
+                fontSize: "13px",
+                fontWeight: "700",
+                cursor: "pointer",
+                width: "100%",
+                transition: "all 0.2s ease"
+              }}
+            >
+              ⚡ Quick Fill Admin (admin / admin123)
             </button>
           )}
         </div>
@@ -316,7 +344,7 @@ function Login() {
         >
           {mode === "login" ? (
             <>
-              Don't have an account?{" "}
+              {t("auth.no_account", "Don't have an account?")}{" "}
               <button
                 onClick={() => setMode("register")}
                 style={{
@@ -331,12 +359,12 @@ function Login() {
                   width: "auto",
                 }}
               >
-                Create one
+                {t("auth.signup_now", "Create one")}
               </button>
             </>
           ) : (
             <>
-              Already have an account?{" "}
+              {t("auth.have_account", "Already have an account?")}{" "}
               <button
                 onClick={() => setMode("login")}
                 style={{
@@ -351,12 +379,14 @@ function Login() {
                   width: "auto",
                 }}
               >
-                Login
+                {t("auth.login_now", "Login")}
               </button>
             </>
           )}
         </div>
       </div>
+
+      <LanguageSelector variant="floating" />
     </div>
   );
 }

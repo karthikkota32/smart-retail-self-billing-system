@@ -109,6 +109,7 @@ function Payment() {
         
         // Dispatch update event
         window.dispatchEvent(new Event("appUpdate"));
+        window.dispatchEvent(new Event("stockUpdate"));
         
         // Navigate immediately without blocking alert
         navigate("/history");

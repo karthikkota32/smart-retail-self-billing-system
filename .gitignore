@@ -33,3 +33,5 @@ backend/app.db
 .venv/
 backend/.venv/
 backend/.venv-4/
+catalog-inventory-module/.env
+catalog-inventory-module/node_modules/

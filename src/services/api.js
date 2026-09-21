@@ -1,5 +1,9 @@
 const configuredApiBase = (import.meta.env.VITE_API_BASE || "").trim().replace(/\/+$/, "");
-const API_BASE = configuredApiBase || "https://smart-retail-self-billing-system.onrender.com";
+const isLocalDevHost =
+  typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const API_BASE = configuredApiBase || (isLocalDevHost
+  ? "http://localhost:5000"
+  : "https://smart-retail-self-billing-system.onrender.com");
 
 // Auth endpoints
 export const registerUser = async (username, name, phone, email, password) => {
@@ -49,8 +53,41 @@ export const getCategories = async () => {
 };
 
 export const getProduct = async (productId) => {
-  const res = await fetch(`${API_BASE}/products/${productId}`);
-  return res.json();
+  try {
+    // 1. Try MongoDB product endpoint
+    const mongoRes = await fetch(`${API_BASE}/api/mongo/products/${productId}`);
+    if (mongoRes.ok) {
+      const data = await mongoRes.json();
+      const product = data.product || data.data;
+      if (product) {
+        return { ok: true, success: true, product };
+      }
+    }
+  } catch (err) {
+    console.warn("MongoDB product lookup error:", err);
+  }
+
+  try {
+    // 2. Try Node Catalog & Inventory module on port 5001
+    const catalogRes = await fetch(`http://localhost:5001/api/products/${productId}`);
+    if (catalogRes.ok) {
+      const data = await catalogRes.json();
+      if (data && data.data) {
+        return { ok: true, success: true, product: data.data };
+      }
+    }
+  } catch (err) {
+    // fallback
+  }
+
+  try {
+    // 3. Fallback to legacy SQLite endpoint
+    const res = await fetch(`${API_BASE}/products/${productId}`);
+    const data = await res.json();
+    return { ok: res.ok, success: res.ok, ...(data.product ? data : { product: data }) };
+  } catch (err) {
+    return { ok: false, success: false, error: err.message };
+  }
 };
 
 export const seedProducts = async () => {
@@ -65,8 +102,13 @@ export const getMongoProducts = async () => {
 };
 
 export const getMongoProduct = async (productId) => {
-  const res = await fetch(`${API_BASE}/api/mongo/products/${productId}`);
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE}/api/mongo/products/${productId}`);
+    const data = await res.json();
+    return { ok: res.ok, success: res.ok, product: data.product || data.data, ...data };
+  } catch (err) {
+    return { ok: false, success: false, error: err.message };
+  }
 };
 
 export const createMongoProduct = async (productData) => {
@@ -173,10 +215,11 @@ export const validateCoupon = async (code, total) => {
 };
 
 export const createCoupon = async (code, discountPercent, maxDiscount, minPurchase, expiryDate, usageLimit, admin_username) => {
+  const admin = admin_username || localStorage.getItem("username") || "admin";
   const res = await fetch(`${API_BASE}/admin/coupons`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code, discountPercent, maxDiscount, minPurchase, expiryDate, usageLimit, admin_username }),
+    body: JSON.stringify({ code, discountPercent, maxDiscount, minPurchase, expiryDate, usageLimit, admin_username: admin }),
   });
   return res.json();
 };
@@ -493,3 +536,48 @@ export const getChatMessages = async (userId, limit = 50) => {
   const res = await fetch(`${API_BASE}/api/chat/messages?${params}`);
   return res.json();
 };
+
+
+// ============= NLP-BASED PRODUCT SEARCH & INFORMATION =============
+
+export const searchProductsNlp = async (query) => {
+  const res = await fetch(`${API_BASE}/api/nlp/search`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  });
+  return res.json();
+};
+
+export const getProductInfoNlp = async ({ productName, productId } = {}) => {
+  const res = await fetch(`${API_BASE}/api/nlp/product-info`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ productName, productId }),
+  });
+  return res.json();
+};
+
+export const getNlpSuggestions = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/api/nlp/suggestions`);
+    return res.json();
+  } catch (err) {
+    console.warn("Failed to fetch NLP suggestions:", err);
+    return {
+      success: true,
+      suggestions: [
+        { query: "Show me biscuits under ₹50", category: "Price & Category" },
+        { query: "I want low sugar drinks", category: "Health & Attributes" },
+        { query: "Show me products from Britannia", category: "Brand Search" },
+        { query: "Which rice is cheapest?", category: "Price Discovery" },
+        { query: "Show me dairy products", category: "Category" },
+        { query: "I need a shampoo for dry hair", category: "Attribute Matching" },
+        { query: "What is the price of Maggi?", category: "Price Inquiry" },
+        { query: "Tell me about Maggi", category: "Product Details" },
+        { query: "Show me products below ₹100", category: "Price Filter" },
+        { query: "I want something to drink under ₹30", category: "Budget Beverage" },
+      ],
+    };
+  }
+};
