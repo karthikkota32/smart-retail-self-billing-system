@@ -63,7 +63,8 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5001;
 
 let server;
-if (process.env.NODE_ENV !== 'test') {
+// Don't listen when running unit tests or in Vercel serverless functions
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   server = app.listen(PORT, () => {
     console.log(`====================================================`);
     console.log(`🚀 Catalog & Inventory Module running on port ${PORT}`);
@@ -76,4 +77,7 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
-module.exports = { app, server };
+// Export both default app (for Vercel serverless) and named object (for tests)
+module.exports = app;
+module.exports.app = app;
+module.exports.server = server;
