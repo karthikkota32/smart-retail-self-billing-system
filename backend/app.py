@@ -208,6 +208,25 @@ def _init_db():
         """
     )
     
+    # Ensure default admin account exists in SQLite
+    admin_row = conn.execute("SELECT id FROM users WHERE username = 'admin'").fetchone()
+    if not admin_row:
+        conn.execute(
+            """
+            INSERT INTO users (username, name, phone, email, password_hash, role, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "admin",
+                "Store Administrator",
+                "9999999999",
+                "admin@smartretail.com",
+                generate_password_hash("admin123"),
+                "admin",
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+
     conn.commit()
     conn.close()
 
@@ -2296,43 +2315,79 @@ def register_user_mongo():
         if len(password) < 6:
             return jsonify({"ok": False, "message": "Password must be at least 6 characters"}), 400
         
-        users_col = MongoDBCollections.get_collection("users")
-        
-        # Check if user already exists
-        existing = users_col.find_one({"phone": phone})
-        if existing:
-            return jsonify({"ok": False, "message": "Phone number already registered"}), 409
-        
-        existing = users_col.find_one({"username": username})
-        if existing:
-            return jsonify({"ok": False, "message": "Username already taken"}), 409
-        
-        # Create user document
-        user_doc = {
-            "username": username,
-            "name": name,
-            "phone": phone,
-            "email": email,
-            "password_hash": generate_password_hash(password),
-            "is_admin": username.lower() == "admin",
-            "is_active": True,
-            "created_at": datetime.now(timezone.utc),
-            "updated_at": datetime.now(timezone.utc),
-            "last_login": None,
-            "login_history": [],
-            "orders": []
-        }
-        
-        result = users_col.insert_one(user_doc)
-        
-        return jsonify({
-            "ok": True,
-            "user_id": str(result.inserted_id),
-            "username": username,
-            "name": name,
-            "phone": phone,
-            "email": email
-        }), 201
+        try:
+            users_col = MongoDBCollections.get_collection("users")
+            
+            # Check if user already exists
+            existing = users_col.find_one({"phone": phone})
+            if existing:
+                return jsonify({"ok": False, "message": "Phone number already registered"}), 409
+            
+            existing = users_col.find_one({"username": username})
+            if existing:
+                return jsonify({"ok": False, "message": "Username already taken"}), 409
+            
+            # Create user document
+            user_doc = {
+                "username": username,
+                "name": name,
+                "phone": phone,
+                "email": email,
+                "password_hash": generate_password_hash(password),
+                "is_admin": username.lower() == "admin",
+                "is_active": True,
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
+                "last_login": None,
+                "login_history": [],
+                "orders": []
+            }
+            
+            result = users_col.insert_one(user_doc)
+            
+            return jsonify({
+                "ok": True,
+                "user_id": str(result.inserted_id),
+                "username": username,
+                "name": name,
+                "phone": phone,
+                "email": email
+            }), 201
+        except Exception as mongo_err:
+            print(f"[WARN] MongoDB registration unavailable, using SQLite fallback: {mongo_err}")
+            conn = _get_db()
+            existing = conn.execute("SELECT id FROM users WHERE phone = ? OR username = ?", (phone, username)).fetchone()
+            if existing:
+                conn.close()
+                return jsonify({"ok": False, "message": "Phone or username already registered"}), 409
+            
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO users (username, name, phone, email, password_hash, role, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    username,
+                    name,
+                    phone,
+                    email,
+                    generate_password_hash(password),
+                    "admin" if username.lower() == "admin" else "user",
+                    datetime.now(timezone.utc).isoformat(),
+                )
+            )
+            user_id = cur.lastrowid
+            conn.commit()
+            conn.close()
+            return jsonify({
+                "ok": True,
+                "user_id": str(user_id),
+                "username": username,
+                "name": name,
+                "phone": phone,
+                "email": email
+            }), 201
     
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)}), 500
@@ -2340,7 +2395,7 @@ def register_user_mongo():
 
 @app.post("/api/users/login-mongo")
 def login_user_mongo():
-    """Login user and track login history in MongoDB"""
+    """Login user and track login history in MongoDB, with SQLite/Admin fallback if MongoDB is unavailable"""
     try:
         payload = request.get_json(silent=True) or {}
         username = str(payload.get("username", "")).strip()
@@ -2349,37 +2404,80 @@ def login_user_mongo():
         if not username or not password:
             return jsonify({"ok": False, "message": "Enter username and password"}), 400
         
-        users_col = MongoDBCollections.get_collection("users")
-        user = users_col.find_one({"username": username})
-        
-        if not user or not check_password_hash(user.get("password_hash", ""), password):
-            return jsonify({"ok": False, "message": "Invalid credentials"}), 401
-        
-        # Record login in history
-        login_record = {
-            "timestamp": datetime.now(timezone.utc),
-            "ip_address": request.remote_addr,
-            "user_agent": request.headers.get("User-Agent", "Unknown")
-        }
-        
-        # Update user's last_login and add to login_history
-        users_col.update_one(
-            {"_id": user["_id"]},
-            {
-                "$set": {"last_login": datetime.now(timezone.utc)},
-                "$push": {"login_history": login_record}
-            }
-        )
-        
-        return jsonify({
-            "ok": True,
-            "user_id": str(user["_id"]),
-            "username": user["username"],
-            "name": user["name"],
-            "phone": user["phone"],
-            "email": user["email"],
-            "is_admin": user.get("is_admin", False)
-        }), 200
+        # 1. Try MongoDB first if available
+        try:
+            users_col = MongoDBCollections.get_collection("users")
+            user = users_col.find_one({"username": username})
+            
+            if user and check_password_hash(user.get("password_hash", ""), password):
+                # Record login in history
+                login_record = {
+                    "timestamp": datetime.now(timezone.utc),
+                    "ip_address": request.remote_addr,
+                    "user_agent": request.headers.get("User-Agent", "Unknown")
+                }
+                
+                # Update user's last_login and add to login_history
+                try:
+                    users_col.update_one(
+                        {"_id": user["_id"]},
+                        {
+                            "$set": {"last_login": datetime.now(timezone.utc)},
+                            "$push": {"login_history": login_record}
+                        }
+                    )
+                except Exception:
+                    pass
+                
+                return jsonify({
+                    "ok": True,
+                    "user_id": str(user["_id"]),
+                    "username": user["username"],
+                    "name": user.get("name", user["username"]),
+                    "phone": user.get("phone", ""),
+                    "email": user.get("email", ""),
+                    "is_admin": user.get("is_admin", False) or user["username"].lower() == "admin"
+                }), 200
+            elif user:
+                return jsonify({"ok": False, "message": "Invalid credentials"}), 401
+        except Exception as mongo_err:
+            print(f"[WARN] MongoDB login unavailable, trying SQLite/Admin fallback: {mongo_err}")
+
+        # 2. Hardcoded Admin Quick-Fill Fallback
+        if username.lower() == "admin" and password == "admin123":
+            return jsonify({
+                "ok": True,
+                "user_id": "admin_fallback",
+                "username": "admin",
+                "name": "Store Administrator",
+                "phone": "9999999999",
+                "email": "admin@smartretail.com",
+                "is_admin": True
+            }), 200
+
+        # 3. SQLite users table fallback
+        try:
+            conn = _get_db()
+            sqlite_user = conn.execute(
+                "SELECT id, username, name, phone, email, password_hash, role FROM users WHERE username = ?",
+                (username,)
+            ).fetchone()
+            conn.close()
+
+            if sqlite_user and check_password_hash(sqlite_user["password_hash"], password):
+                return jsonify({
+                    "ok": True,
+                    "user_id": str(sqlite_user["id"]),
+                    "username": sqlite_user["username"],
+                    "name": sqlite_user["name"],
+                    "phone": sqlite_user["phone"],
+                    "email": sqlite_user["email"],
+                    "is_admin": sqlite_user["role"] == "admin" or sqlite_user["username"].lower() == "admin"
+                }), 200
+        except Exception as sql_err:
+            print(f"[WARN] SQLite login fallback failed: {sql_err}")
+
+        return jsonify({"ok": False, "message": "Invalid credentials"}), 401
     
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)}), 500

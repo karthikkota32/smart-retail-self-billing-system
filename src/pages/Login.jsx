@@ -84,7 +84,11 @@ function Login() {
       setLoading(true);
       const result = await loginUserMongo(trimmedUsername, trimmedPassword);
       if (!result.ok) {
-        setError(result.message || "Invalid credentials");
+        if (result.message && (result.message.includes("MongoDB is not connected") || result.message.includes("DNS query name does not exist"))) {
+          setError("Database is temporarily offline (MongoDB Atlas cluster paused or unreachable). Please check your database connection.");
+        } else {
+          setError(result.message || "Invalid credentials");
+        }
         return;
       }
 
