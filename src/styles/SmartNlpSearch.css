@@ -729,3 +729,464 @@
     justify-content: center;
   }
 }
+
+/* ===================================================
+   500+ Recipe NLP to Cart Styles
+   =================================================== */
+
+.nlp-recipe-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 2px solid #fed7aa;
+  box-shadow: 0 8px 30px rgba(249, 115, 22, 0.08);
+  margin-top: 20px;
+  margin-bottom: 24px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.nlp-recipe-hero {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+  border-bottom: 1px solid #fed7aa;
+}
+
+.nlp-recipe-image-wrap {
+  position: relative;
+  height: 100%;
+  min-height: 220px;
+  background: #fef3c7;
+}
+
+.nlp-recipe-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.nlp-recipe-cuisine-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(15, 23, 42, 0.85);
+  color: #fbbf24;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.nlp-recipe-details {
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.nlp-recipe-badge {
+  display: inline-block;
+  background: #ffedd5;
+  color: #c2410c;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+}
+
+.nlp-recipe-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.nlp-recipe-desc {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+}
+
+.nlp-recipe-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.nlp-recipe-meta-tag {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.nlp-recipe-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: #f8fafc;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.nlp-recipe-availability {
+  font-size: 13px;
+  color: #15803d;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.nlp-recipe-check-icon {
+  background: #dcfce7;
+  color: #16a34a;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.nlp-recipe-bundle-price {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.nlp-recipe-bundle-price span {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.nlp-recipe-add-all-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  transition: all 0.25s ease;
+}
+
+.nlp-recipe-add-all-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+}
+
+.nlp-recipe-add-all-btn:disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.nlp-recipe-btn-count {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+/* Recipe Toast */
+.nlp-recipe-toast {
+  margin: 14px 24px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  animation: fadeInToast 0.3s ease;
+}
+
+.nlp-recipe-toast-success {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.nlp-recipe-toast-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+@keyframes fadeInToast {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Ingredients Section */
+.nlp-recipe-ingredients-section {
+  padding: 24px;
+  background: #ffffff;
+}
+
+.nlp-recipe-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nlp-recipe-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.nlp-recipe-section-hint {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.nlp-recipe-ingredients-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.nlp-recipe-ingredient-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #f8fafc;
+  transition: all 0.2s ease;
+}
+
+.nlp-recipe-ingredient-card.is-instock {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.nlp-recipe-ingredient-card.is-outstock {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.nlp-ing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.nlp-ing-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.nlp-ing-qty {
+  font-size: 12px;
+  color: #64748b;
+  background: #ffffff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.nlp-ing-product-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.08);
+}
+
+.nlp-ing-prod-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.nlp-ing-prod-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 170px;
+}
+
+.nlp-ing-prod-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nlp-ing-prod-price {
+  font-size: 13px;
+  font-weight: 700;
+  color: #059669;
+}
+
+.nlp-ing-stock-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+  text-transform: uppercase;
+}
+
+.nlp-ing-stock-tag.in {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.nlp-ing-stock-tag.out {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.nlp-ing-add-btn {
+  background: #059669;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.nlp-ing-add-btn:hover:not(:disabled) {
+  background: #047857;
+  transform: translateY(-1px);
+}
+
+.nlp-ing-add-btn:disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.nlp-ing-unmatched {
+  font-size: 11px;
+  color: #94a3b8;
+  font-style: italic;
+  padding-top: 4px;
+}
+
+/* Instructions Section */
+.nlp-recipe-instructions-section {
+  border-top: 1px solid #fed7aa;
+  background: #fffdfa;
+  padding: 16px 24px;
+}
+
+.nlp-recipe-instructions-toggle {
+  background: transparent;
+  border: none;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #b45309;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.nlp-recipe-instructions-list {
+  margin: 12px 0 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nlp-recipe-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: white;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.nlp-step-number {
+  background: #f59e0b;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.nlp-step-text {
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .nlp-recipe-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .nlp-recipe-image-wrap {
+    height: 180px;
+  }
+
+  .nlp-recipe-action-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nlp-recipe-add-all-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+

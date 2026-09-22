@@ -567,6 +567,9 @@ export const getNlpSuggestions = async () => {
     return {
       success: true,
       suggestions: [
+        { query: "Ingredients for Biryani", category: "Recipe to Cart" },
+        { query: "How to make Paneer Butter Masala", category: "Recipe to Cart" },
+        { query: "What do I need for Pasta Alfredo?", category: "Recipe to Cart" },
         { query: "Show me biscuits under ₹50", category: "Price & Category" },
         { query: "I want low sugar drinks", category: "Health & Attributes" },
         { query: "Show me products from Britannia", category: "Brand Search" },
@@ -576,8 +579,26 @@ export const getNlpSuggestions = async () => {
         { query: "What is the price of Maggi?", category: "Price Inquiry" },
         { query: "Tell me about Maggi", category: "Product Details" },
         { query: "Show me products below ₹100", category: "Price Filter" },
-        { query: "I want something to drink under ₹30", category: "Budget Beverage" },
       ],
     };
   }
-};
+};
+
+export const searchRecipesNlp = async (query, cuisine = null) => {
+  const params = new URLSearchParams();
+  if (query) params.append("q", query);
+  if (cuisine) params.append("cuisine", cuisine);
+  const res = await fetch(`${API_BASE}/api/nlp/recipes/search?${params}`);
+  return res.json();
+};
+
+export const getRecipeDetailsNlp = async (recipeId) => {
+  const res = await fetch(`${API_BASE}/api/nlp/recipes/${recipeId}`);
+  return res.json();
+};
+
+export const getPopularRecipesNlp = async () => {
+  const res = await fetch(`${API_BASE}/api/nlp/recipes/popular`);
+  return res.json();
+};
+

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { searchProductsNlp, getNlpSuggestions, getProductInfoNlp } from "../services/api";
+import { addItemToCart } from "../utils/cartUtils";
 import { useLanguage } from "../context/LanguageContext";
 import "../styles/SmartNlpSearch.css";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=60";
 
 const INTENT_LABELS = {
+  RECIPE_INGREDIENTS: "🍳 Recipe & Cooking",
   PRODUCT_SEARCH: "🔍 Product Search",
   GET_PRODUCT_INFO: "ℹ️ Product Details",
   GET_PRODUCT_PRICE: "💰 Price Inquiry",
@@ -27,6 +29,9 @@ export default function SmartNlpSearch({ onAddToCart, onSearchApplied }) {
   const [suggestions, setSuggestions] = useState([]);
   const [focusedProduct, setFocusedProduct] = useState(null);
   const [infoModalProduct, setInfoModalProduct] = useState(null);
+  const [recipeToast, setRecipeToast] = useState(null);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [addingAll, setAddingAll] = useState(false);
 
   // Load preset suggestions on mount
   useEffect(() => {
@@ -42,6 +47,53 @@ export default function SmartNlpSearch({ onAddToCart, onSearchApplied }) {
     };
     fetchSuggestions();
   }, []);
+
+  const handleAddSingleIngredient = (product) => {
+    if (!product || product.stock <= 0) return;
+    if (onAddToCart) {
+      onAddToCart(product);
+    } else {
+      const userPhone = localStorage.getItem("userPhone") || "guest";
+      addItemToCart(product, 1, userPhone);
+      window.dispatchEvent(new Event("appUpdate"));
+    }
+    setRecipeToast({
+      type: "success",
+      message: `✓ Added "${product.name}" to cart!`,
+    });
+    setTimeout(() => setRecipeToast(null), 3000);
+  };
+
+  const handleAddAllRecipeIngredients = () => {
+    const productsToAdd = nlpData?.matchedProducts || [];
+    if (productsToAdd.length === 0) {
+      setRecipeToast({ type: "error", message: "No matched products in stock for this recipe." });
+      setTimeout(() => setRecipeToast(null), 3500);
+      return;
+    }
+
+    setAddingAll(true);
+    let count = 0;
+    const userPhone = localStorage.getItem("userPhone") || "guest";
+
+    productsToAdd.forEach((prod) => {
+      if (onAddToCart) {
+        onAddToCart(prod);
+        count++;
+      } else {
+        addItemToCart(prod, 1, userPhone);
+        count++;
+      }
+    });
+
+    window.dispatchEvent(new Event("appUpdate"));
+    setRecipeToast({
+      type: "success",
+      message: `🎉 Added all ${count} ingredients for "${nlpData.recipe?.name}" to your cart!`,
+    });
+    setAddingAll(false);
+    setTimeout(() => setRecipeToast(null), 4000);
+  };
 
   const handleSearch = async (searchQuery) => {
     const q = (searchQuery ?? query).trim();
@@ -85,6 +137,8 @@ export default function SmartNlpSearch({ onAddToCart, onSearchApplied }) {
     setFocusedProduct(null);
     setError(null);
     setInfoModalProduct(null);
+    setRecipeToast(null);
+    setShowInstructions(false);
     if (onSearchApplied) {
       onSearchApplied(false, null);
     }
@@ -118,7 +172,7 @@ export default function SmartNlpSearch({ onAddToCart, onSearchApplied }) {
           <div>
             <h2 className="nlp-title">Smart Natural Language Search</h2>
             <p className="nlp-subtitle">
-              Ask in plain English: prices, brands, dietary choices, or product information
+              Ask in plain English: recipes ("Biryani"), prices, brands, or dietary choices
             </p>
           </div>
         </div>
@@ -147,7 +201,7 @@ export default function SmartNlpSearch({ onAddToCart, onSearchApplied }) {
               setQuery(e.target.value);
               if (error) setError(null);
             }}
-            placeholder={t("nlp.placeholder", "Search products naturally... e.g., Biscuits under ₹50, Low sugar drinks")}
+            placeholder={t("nlp.placeholder", "Search recipes & products... e.g. 'Biryani ingredients', 'How to make pasta'")}
             disabled={loading}
           />
           {query && (
@@ -212,6 +266,11 @@ export default function SmartNlpSearch({ onAddToCart, onSearchApplied }) {
 
             {/* Extracted Entity Tags */}
             <div className="nlp-entities-wrap">
+              {nlpData.isRecipe && (
+                <span className="nlp-entity-pill" style={{ background: "#fef3c7", color: "#92400e", borderColor: "#fde68a" }}>
+                  🍳 500+ Recipe Library
+                </span>
+              )}
               {nlpData.entities?.category && (
                 <span className="nlp-entity-pill">🏷️ Category: {nlpData.entities.category}</span>
               )}
@@ -239,6 +298,163 @@ export default function SmartNlpSearch({ onAddToCart, onSearchApplied }) {
           </p>
         </div>
       )}
+
+      {/* Recipe Showcase Card (when intent is RECIPE_INGREDIENTS) */}
+      {nlpData && nlpData.isRecipe && nlpData.recipe && (
+        <div className="nlp-recipe-card">
+          <div className="nlp-recipe-hero">
+            <div className="nlp-recipe-image-wrap">
+              <img
+                src={nlpData.recipe.image || "https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=600"}
+                alt={nlpData.recipe.name}
+                className="nlp-recipe-image"
+                onError={(e) => {
+                  e.currentTarget.src = "https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=600";
+                }}
+              />
+              <span className="nlp-recipe-cuisine-badge">{nlpData.recipe.cuisine || "Special Recipe"}</span>
+            </div>
+
+            <div className="nlp-recipe-details">
+              <div className="nlp-recipe-title-row">
+                <div>
+                  <span className="nlp-recipe-badge">🍲 500+ Recipe Smart Cooking</span>
+                  <h3 className="nlp-recipe-title">{nlpData.recipe.name}</h3>
+                </div>
+              </div>
+
+              <p className="nlp-recipe-desc">{nlpData.recipe.description}</p>
+
+              <div className="nlp-recipe-meta-row">
+                <span className="nlp-recipe-meta-tag">⏱️ Prep: {nlpData.recipe.prep_time || "15 mins"}</span>
+                <span className="nlp-recipe-meta-tag">🔥 Cook: {nlpData.recipe.cook_time || "25 mins"}</span>
+                <span className="nlp-recipe-meta-tag">👥 Serves: {nlpData.recipe.servings || 4}</span>
+                <span className="nlp-recipe-meta-tag">⭐ Difficulty: {nlpData.recipe.difficulty || "Medium"}</span>
+              </div>
+
+              {/* Recipe Cart Action Bar */}
+              <div className="nlp-recipe-action-bar">
+                <div className="nlp-recipe-cost-info">
+                  <div className="nlp-recipe-availability">
+                    <span className="nlp-recipe-check-icon">✓</span>
+                    <strong>{nlpData.matchedProducts?.length ?? nlpData.recipe.matched_count ?? 0}</strong> of{" "}
+                    <strong>{nlpData.recipe.ingredients?.length ?? nlpData.recipe.total_ingredients ?? 0}</strong> ingredients in stock
+                  </div>
+                  <div className="nlp-recipe-bundle-price">
+                    Store Bundle Price: <span>₹{Number(nlpData.recipe.bundle_price || nlpData.recipe.estimated_total_price || 0).toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="nlp-recipe-add-all-btn"
+                  onClick={handleAddAllRecipeIngredients}
+                  disabled={addingAll || !nlpData.matchedProducts || nlpData.matchedProducts.length === 0}
+                >
+                  {addingAll ? (
+                    "Adding to cart..."
+                  ) : (
+                    <>
+                      <span>🛒 Add All Ingredients to Cart</span>
+                      <span className="nlp-recipe-btn-count">({nlpData.matchedProducts?.length || 0} items)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Toast alert for Recipe */}
+          {recipeToast && (
+            <div className={`nlp-recipe-toast nlp-recipe-toast-${recipeToast.type}`}>
+              <span>{recipeToast.message}</span>
+            </div>
+          )}
+
+          {/* Ingredients Checklist */}
+          <div className="nlp-recipe-ingredients-section">
+            <div className="nlp-recipe-section-header">
+              <h4 className="nlp-recipe-section-title">
+                🥗 Recipe Ingredients ({nlpData.recipe.ingredients?.length || 0})
+              </h4>
+              <span className="nlp-recipe-section-hint">
+                Matched automatically with store inventory
+              </span>
+            </div>
+
+            <div className="nlp-recipe-ingredients-grid">
+              {(nlpData.recipe.ingredients || []).map((ing, idx) => {
+                const prod = ing.matched_product;
+                const inStock = Boolean(prod && (prod.stock > 0 || prod.stock_quantity > 0));
+                return (
+                  <div
+                    key={idx}
+                    className={`nlp-recipe-ingredient-card ${inStock ? "is-instock" : "is-outstock"}`}
+                  >
+                    <div className="nlp-ing-header">
+                      <span className="nlp-ing-name">{ing.name}</span>
+                      <span className="nlp-ing-qty">{ing.quantity || "As required"}</span>
+                    </div>
+
+                    {prod ? (
+                      <div className="nlp-ing-product-info">
+                        <div className="nlp-ing-prod-left">
+                          <span className="nlp-ing-prod-name">📍 {prod.name}</span>
+                          <div className="nlp-ing-prod-sub">
+                            <span className="nlp-ing-prod-price">₹{Number(prod.price).toFixed(2)}</span>
+                            <span className={`nlp-ing-stock-tag ${inStock ? "in" : "out"}`}>
+                              {inStock ? `In Stock (${prod.stock || prod.stock_quantity})` : "Out of Stock"}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="nlp-ing-add-btn"
+                          disabled={!inStock}
+                          onClick={() => handleAddSingleIngredient(prod)}
+                          title="Add only this ingredient to cart"
+                        >
+                          + Add
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="nlp-ing-unmatched">
+                        <span>🏠 Standard Pantry / Fresh Ingredient</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Instructions Accordion */}
+          {nlpData.recipe.instructions && nlpData.recipe.instructions.length > 0 && (
+            <div className="nlp-recipe-instructions-section">
+              <button
+                type="button"
+                className="nlp-recipe-instructions-toggle"
+                onClick={() => setShowInstructions((prev) => !prev)}
+              >
+                <span>👨‍🍳 Cooking Instructions ({nlpData.recipe.instructions.length} steps)</span>
+                <span>{showInstructions ? "▲ Hide Instructions" : "▼ View Cooking Steps"}</span>
+              </button>
+
+              {showInstructions && (
+                <ol className="nlp-recipe-instructions-list">
+                  {nlpData.recipe.instructions.map((step, idx) => (
+                    <li key={idx} className="nlp-recipe-step-item">
+                      <span className="nlp-step-number">{idx + 1}</span>
+                      <span className="nlp-step-text">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
 
       {/* Focused Product Card (for GET_PRODUCT_INFO, GET_PRODUCT_PRICE, or FIND_CHEAPEST) */}
       {focusedProduct && (

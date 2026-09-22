@@ -9,6 +9,8 @@ Provides:
 """
 
 import re
+import json
+from pathlib import Path
 from datetime import datetime
 from bson.objectid import ObjectId
 
@@ -59,6 +61,213 @@ ATTRIBUTE_KEYWORDS = [
     "high protein", "calcium", "iodized", "fresh",
     "gluten free", "vegan", "whole grain", "diet"
 ]
+
+
+class RecipeKnowledgeEngine:
+    """500+ Recipe Knowledge Base and Ingredient Matcher for Smart Retail"""
+    _recipes = None
+    _recipes_by_id = {}
+    _recipes_by_keyword = {}
+
+    @classmethod
+    def load_recipes(cls):
+        if cls._recipes is not None:
+            return cls._recipes
+
+        recipe_file = Path(__file__).resolve().parent / "data" / "recipes_500.json"
+        if not recipe_file.exists():
+            recipe_file = Path(__file__).resolve().parent.parent / "backend" / "data" / "recipes_500.json"
+
+        if recipe_file.exists():
+            try:
+                with open(recipe_file, "r", encoding="utf-8") as f:
+                    cls._recipes = json.load(f)
+            except Exception as e:
+                print(f"[WARN] Failed to load recipes: {e}")
+                cls._recipes = []
+        else:
+            cls._recipes = []
+
+        cls._recipes_by_id = {r["id"]: r for r in cls._recipes}
+        cls._recipes_by_keyword = {}
+        for r in cls._recipes:
+            for kw in r.get("keywords", []):
+                k = kw.strip().lower()
+                if k not in cls._recipes_by_keyword:
+                    cls._recipes_by_keyword[k] = []
+                cls._recipes_by_keyword[k].append(r)
+
+        return cls._recipes
+
+    @classmethod
+    def is_recipe_query(cls, query: str) -> bool:
+        cls.load_recipes()
+        lower = query.lower().strip()
+        recipe_triggers = [
+            "recipe", "ingredients", "how to make", "how to cook", "cook", "dish", "prepare",
+            "biryani", "pulao", "dosa", "idli", "pasta", "noodles", "curry", "paneer", "pizza",
+            "chai", "tea", "pancake", "cake", "burger", "tacos", "sandwich", "soup", "salad",
+            "khichdi", "vada", "upma", "poha", "halwa", "kheer", "gulab jamun", "lassi", "dal"
+        ]
+        if any(trig in lower for trig in recipe_triggers):
+            return True
+        for r in cls._recipes:
+            if r["name"].lower() in lower or any(kw in lower for kw in r.get("keywords", []) if len(kw) > 3):
+                return True
+        return False
+
+    @classmethod
+    def find_recipe(cls, query: str):
+        cls.load_recipes()
+        if not cls._recipes:
+            return None
+
+        lower = query.lower()
+        cleaned = re.sub(
+            r"\b(show me|how to make|how to cook|ingredients for|ingredients|recipe for|recipe of|recipe|cook|make|prepare|i want to make|i want to cook)\b",
+            "",
+            lower
+        ).strip()
+        cleaned = " ".join(cleaned.split())
+
+        # 1. Exact Name match
+        for r in cls._recipes:
+            if r["name"].lower() == cleaned or r["name"].lower() == lower:
+                return r
+
+        # 2. Match if cleaned is substring of name
+        if cleaned:
+            matches = [r for r in cls._recipes if cleaned in r["name"].lower()]
+            if matches:
+                return matches[0]
+
+        # 3. Token-based scoring
+        query_words = set(w for w in cleaned.split() if len(w) > 2)
+        if not query_words:
+            query_words = set(w for w in lower.split() if len(w) > 2)
+
+        best_recipe = None
+        best_score = 0
+        for r in cls._recipes:
+            score = 0
+            name_words = set(r["name"].lower().split())
+            overlap = query_words.intersection(name_words)
+            score += len(overlap) * 4
+
+            for kw in r.get("keywords", []):
+                if kw in lower or kw in cleaned:
+                    score += 3
+                elif any(qw in kw for qw in query_words):
+                    score += 1
+
+            if score > best_score:
+                best_score = score
+                best_recipe = r
+
+        return best_recipe if best_score > 0 else None
+
+    @classmethod
+    def search_recipes(cls, query: str, limit: int = 12, cuisine: str = None):
+        cls.load_recipes()
+        if not query and not cuisine:
+            return cls._recipes[:limit]
+
+        lower = query.lower().strip() if query else ""
+        results = []
+        for r in cls._recipes:
+            if cuisine and cuisine.lower() not in r.get("cuisine", "").lower():
+                continue
+            if not lower:
+                results.append(r)
+            elif lower in r["name"].lower() or any(lower in kw for kw in r.get("keywords", [])):
+                results.append(r)
+            if len(results) >= limit:
+                break
+        return results
+
+    @classmethod
+    def get_popular_recipes(cls, limit: int = 8):
+        cls.load_recipes()
+        flagship_names = [
+            "Hyderabadi Chicken Biryani", "Veg Dum Biryani", "Paneer Butter Masala",
+            "Butter Chicken (Murgh Makhani)", "Masala Dosa", "Fettuccine Alfredo (White Sauce Pasta)",
+            "Classic Margherita Pizza", "Kadak Masala Chai", "Fluffy American Buttermilk Pancakes",
+            "Mumbai Pav Bhaji", "Chana Masala", "Soft Gulab Jamun"
+        ]
+        popular = []
+        for name in flagship_names:
+            for r in cls._recipes:
+                if r["name"] == name:
+                    popular.append(r)
+                    break
+        if len(popular) < limit:
+            popular.extend(cls._recipes[:limit - len(popular)])
+        return popular[:limit]
+
+    @classmethod
+    def match_recipe_to_inventory(cls, recipe: dict, products_collection):
+        """
+        Maps ingredients in recipe to real inventory products in MongoDB.
+        Returns: (enriched_recipe, list_of_matched_products)
+        """
+        if not recipe:
+            return None, []
+
+        enriched_ingredients = []
+        matched_products = []
+        seen_product_ids = set()
+
+        store_products = []
+        if products_collection is not None:
+            try:
+                store_products = list(products_collection.find({"is_active": {"$ne": False}}))
+            except Exception as e:
+                print(f"[WARN] Could not fetch store products for recipe matching: {e}")
+
+        for ing in recipe.get("ingredients", []):
+            ing_copy = dict(ing)
+            kw = ing.get("product_keyword", ing["name"]).lower().strip()
+            matched_prod = None
+
+            for p in store_products:
+                p_name = p.get("name", "").lower()
+                p_desc = p.get("description", "").lower()
+                p_attrs = [str(a).lower() for a in p.get("attributes", [])]
+
+                # Match by keyword in name, attributes, or description
+                if kw in p_name or any(kw in a for a in p_attrs) or (len(kw) > 3 and kw in p_desc):
+                    stock_val = p.get("stock_quantity") or p.get("stock") or p.get("stockQuantity") or 0
+                    matched_prod = {
+                        "id": str(p.get("_id", p.get("id", ""))),
+                        "_id": str(p.get("_id", p.get("id", ""))),
+                        "name": p.get("name", ""),
+                        "price": float(p.get("price", 0)),
+                        "image": p.get("image_url", p.get("image", "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500")),
+                        "imageUrl": p.get("image_url", p.get("image", "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500")),
+                        "stock": int(stock_val),
+                        "stock_quantity": int(stock_val),
+                        "in_stock": int(stock_val) > 0,
+                        "category": p.get("category", "Grocery"),
+                        "unit_type": p.get("unit_type", "unit"),
+                        "is_loose_item": bool(p.get("is_loose_item", False)),
+                    }
+                    break
+
+            ing_copy["matched_product"] = matched_prod
+            ing_copy["in_stock"] = bool(matched_prod and matched_prod["in_stock"])
+            enriched_ingredients.append(ing_copy)
+
+            if matched_prod and matched_prod["id"] not in seen_product_ids:
+                seen_product_ids.add(matched_prod["id"])
+                matched_products.append(matched_prod)
+
+        enriched_recipe = dict(recipe)
+        enriched_recipe["ingredients"] = enriched_ingredients
+        enriched_recipe["matched_count"] = len(matched_products)
+        enriched_recipe["total_ingredients"] = len(recipe.get("ingredients", []))
+        enriched_recipe["bundle_price"] = sum(p["price"] for p in matched_products)
+
+        return enriched_recipe, matched_products
 
 
 class RetailNLPEngine:
@@ -288,6 +497,10 @@ class RetailNLPEngine:
         if (entities.get("maxPrice") is not None or entities.get("minPrice") is not None) and not entities.get("category") and not entities.get("brand") and not entities.get("productName"):
             return "SEARCH_PRICE_RANGE"
 
+        # 9. Recipe & Cooking Intent ("biryani", "ingredients for biryani", "how to make paneer butter masala")
+        if re.search(r"\b(recipe|ingredients for|how to make|how to cook|cook|dish)\b", lower) or RecipeKnowledgeEngine.is_recipe_query(lower):
+            return "RECIPE_INGREDIENTS"
+
         # Default: General Product Search
         return "PRODUCT_SEARCH"
 
@@ -477,13 +690,23 @@ class RetailNLPEngine:
                 "unit_type": doc.get("unit_type", "unit")
             })
 
+        # Check if Recipe intent
+        focused_recipe = None
+        recipe_matched_products = []
+        if intent == "RECIPE_INGREDIENTS":
+            raw_recipe = RecipeKnowledgeEngine.find_recipe(raw_query)
+            if raw_recipe:
+                focused_recipe, recipe_matched_products = RecipeKnowledgeEngine.match_recipe_to_inventory(raw_recipe, products_collection)
+                if recipe_matched_products:
+                    serialized_products = recipe_matched_products
+
         # Focused Product (for GET_PRODUCT_INFO, GET_PRODUCT_PRICE, FIND_CHEAPEST)
         focused_product = None
         if serialized_products and intent in ["GET_PRODUCT_INFO", "GET_PRODUCT_PRICE", "GET_PRODUCT_AVAILABILITY", "FIND_CHEAPEST"]:
             focused_product = serialized_products[0]
 
         # Generate Human-Friendly Summary
-        summary = cls.generate_summary(intent, entities, len(serialized_products), is_fallback, focused_product)
+        summary = cls.generate_summary(intent, entities, len(serialized_products), is_fallback, focused_product, focused_recipe)
 
         return {
             "success": True,
@@ -494,12 +717,20 @@ class RetailNLPEngine:
             "count": len(serialized_products),
             "isFallback": is_fallback,
             "focusedProduct": focused_product,
+            "isRecipe": bool(focused_recipe),
+            "recipe": focused_recipe,
+            "matchedProducts": recipe_matched_products,
             "products": serialized_products
         }
 
     @staticmethod
-    def generate_summary(intent: str, entities: dict, count: int, is_fallback: bool, focused_product: dict = None) -> str:
+    def generate_summary(intent: str, entities: dict, count: int, is_fallback: bool, focused_product: dict = None, focused_recipe: dict = None) -> str:
         """Create conversational summary of search understanding and results"""
+        if intent == "RECIPE_INGREDIENTS" and focused_recipe:
+            avail = focused_recipe.get("matched_count", 0)
+            total = focused_recipe.get("total_ingredients", 0)
+            return f"Found complete recipe for '{focused_recipe['name']}' ({focused_recipe.get('cuisine')})! {avail} of {total} ingredients are in stock. Click 'Add All Ingredients to Cart' to add them to your cart instantly."
+
         if count == 0:
             return "We couldn't find any products matching your query. Try searching with a different price or keyword."
 
@@ -542,6 +773,10 @@ class RetailNLPEngine:
 def get_preset_suggestions():
     """Returns practical suggested queries to inspire the user in the search bar"""
     return [
+        {"query": "Ingredients for Biryani", "category": "Recipe & Cooking"},
+        {"query": "How to make Paneer Butter Masala", "category": "Recipe & Cooking"},
+        {"query": "Pasta Alfredo recipe", "category": "Recipe & Cooking"},
+        {"query": "Ingredients for Masala Chai", "category": "Recipe & Cooking"},
         {"query": "Show me biscuits under ₹50", "category": "Price & Category"},
         {"query": "I want low sugar drinks", "category": "Health & Attributes"},
         {"query": "Show me products from Britannia", "category": "Brand Search"},
@@ -550,6 +785,4 @@ def get_preset_suggestions():
         {"query": "I need a shampoo for dry hair", "category": "Attribute Matching"},
         {"query": "What is the price of Maggi?", "category": "Price Inquiry"},
         {"query": "Tell me about Maggi", "category": "Product Details"},
-        {"query": "Show me products below ₹100", "category": "Price Filter"},
-        {"query": "I want something to drink under ₹30", "category": "Budget Beverage"},
     ]

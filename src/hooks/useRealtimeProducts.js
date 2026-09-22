@@ -38,11 +38,9 @@ export const useRealtimeProducts = (pollIntervalMs = 2500) => {
       if (data.success && data.products && isMountedRef.current) {
         // Transform MongoDB products to match app format
         const transformedProducts = data.products.map((p) => {
-          const resolvedStock = Number(
-            p.stockQuantity !== undefined
-              ? p.stockQuantity
-              : (p.stock_quantity !== undefined ? p.stock_quantity : (p.stock ?? 0))
-          ) || 0;
+          const rawStock = [p.stock_quantity, p.stock, p.stockQuantity]
+            .find(v => v !== undefined && v !== null && !isNaN(Number(v)));
+          const resolvedStock = Math.max(0, Number(rawStock ?? 0));
 
           const resolvedImage =
             p.imageUrl || p.image_url || p.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500";

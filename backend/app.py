@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from werkzeug.security import check_password_hash, generate_password_hash
 from bson.objectid import ObjectId
 from mongo_config import MongoDBCollections
-from nlp_service import RetailNLPEngine, get_preset_suggestions
+from nlp_service import RetailNLPEngine, RecipeKnowledgeEngine, get_preset_suggestions
 
 load_dotenv()
 
@@ -864,6 +864,93 @@ def compare_products_advanced():
 
 
 
+def _product_id_candidates(raw_product_id):
+    """Build possible id representations used across SQLite/Mongo documents."""
+    candidates = []
+    if raw_product_id is None:
+        return candidates
+
+    candidates.append(raw_product_id)
+
+    if isinstance(raw_product_id, str):
+        trimmed = raw_product_id.strip()
+        if trimmed and trimmed not in candidates:
+            candidates.append(trimmed)
+        if trimmed.isdigit():
+            numeric = int(trimmed)
+            if numeric not in candidates:
+                candidates.append(numeric)
+        try:
+            oid = ObjectId(trimmed)
+            if oid not in candidates:
+                candidates.append(oid)
+        except Exception:
+            pass
+    elif isinstance(raw_product_id, (int, float)):
+        numeric = int(raw_product_id)
+        if numeric not in candidates:
+            candidates.append(numeric)
+        as_str = str(numeric)
+        if as_str not in candidates:
+            candidates.append(as_str)
+
+    return candidates
+
+
+def _deduct_product_stock_safe(products_col, raw_product_id, quantity, fallback_name=None, fallback_sku=None):
+    """
+    Safely deduct quantity from product stock in MongoDB without corrupting other fields.
+    Accurately computes new_stock = max(0, current_stock - quantity) and sets all stock aliases consistently.
+    """
+    if products_col is None or quantity <= 0:
+        return False
+
+    product = None
+    for candidate in _product_id_candidates(raw_product_id):
+        if isinstance(candidate, ObjectId):
+            product = products_col.find_one({"_id": candidate})
+        else:
+            product = products_col.find_one({"id": candidate})
+        if product:
+            break
+
+    if not product and fallback_sku:
+        product = products_col.find_one({"sku": fallback_sku})
+    if not product and fallback_name:
+        product = products_col.find_one({"name": fallback_name})
+
+    if not product:
+        return False
+
+    # Determine actual current stock
+    current_stock = 0.0
+    for field in ["stock_quantity", "stock", "stockQuantity"]:
+        val = product.get(field)
+        if val is not None:
+            try:
+                num = float(val)
+                if num >= 0:
+                    current_stock = max(current_stock, num)
+            except (ValueError, TypeError):
+                pass
+
+    new_stock = max(0.0, current_stock - float(quantity))
+
+    products_col.update_one(
+        {"_id": product["_id"]},
+        {
+            "$set": {
+                "stock_quantity": new_stock,
+                "stockQuantity": new_stock,
+                "stock": new_stock,
+                "updated_at": datetime.now(timezone.utc)
+            }
+        }
+    )
+    print(f"[OK] Safely updated stock for '{product.get('name')}': {current_stock} -> {new_stock} (-{quantity})")
+    return True
+
+
 @app.post("/orders")
 def create_order():
     """Create and save a new order"""
@@ -881,40 +968,12 @@ def create_order():
         return jsonify({"ok": False, "message": "Invalid total amount"}), 400
     
     conn = _get_db()
-    products_col = MongoDBCollections.get_collection("products")
+    products_col = None
+    try:
+        products_col = MongoDBCollections.get_collection("products")
+    except Exception as e:
+        print(f"[WARN] MongoDB not available in create_order: {e}")
 
-    def _product_id_candidates(raw_product_id):
-        """Build possible id representations used across SQLite/Mongo documents."""
-        candidates = []
-        if raw_product_id is None:
-            return candidates
-
-        candidates.append(raw_product_id)
-
-        if isinstance(raw_product_id, str):
-            trimmed = raw_product_id.strip()
-            if trimmed and trimmed not in candidates:
-                candidates.append(trimmed)
-            if trimmed.isdigit():
-                numeric = int(trimmed)
-                if numeric not in candidates:
-                    candidates.append(numeric)
-            try:
-                oid = ObjectId(trimmed)
-                if oid not in candidates:
-                    candidates.append(oid)
-            except Exception:
-                pass
-        elif isinstance(raw_product_id, (int, float)):
-            numeric = int(raw_product_id)
-            if numeric not in candidates:
-                candidates.append(numeric)
-            as_str = str(numeric)
-            if as_str not in candidates:
-                candidates.append(as_str)
-
-        return candidates
-    
     # Enrich items with product details for email
     items_with_details = []
     for item in items:
@@ -941,31 +1000,32 @@ def create_order():
         })
     
     # Check stock availability in MongoDB before creating order
-    for item in items_with_details:
-        try:
-            mongo_product = None
-            for candidate in _product_id_candidates(item["product_id"]):
-                if isinstance(candidate, ObjectId):
-                    mongo_product = products_col.find_one({"_id": candidate})
-                else:
-                    mongo_product = products_col.find_one({"id": candidate})
+    if products_col:
+        for item in items_with_details:
+            try:
+                mongo_product = None
+                for candidate in _product_id_candidates(item["product_id"]):
+                    if isinstance(candidate, ObjectId):
+                        mongo_product = products_col.find_one({"_id": candidate})
+                    else:
+                        mongo_product = products_col.find_one({"id": candidate})
+                    if mongo_product:
+                        break
                 if mongo_product:
-                    break
-            if mongo_product:
-                stock_val = mongo_product.get("stockQuantity")
-                if stock_val is None:
                     stock_val = mongo_product.get("stock_quantity")
-                if stock_val is None:
-                    stock_val = mongo_product.get("stock", 0)
-                current_stock = float(stock_val or 0)
-                if current_stock < item["quantity"]:
-                    conn.close()
-                    return jsonify({
-                        "ok": False, 
-                        "message": f"Insufficient stock for {item['name']}. Available: {current_stock}, Requested: {item['quantity']}"
-                    }), 400
-        except Exception as e:
-            print(f"Warning: Could not check stock for product {item['product_id']}: {e}")
+                    if stock_val is None:
+                        stock_val = mongo_product.get("stock")
+                    if stock_val is None:
+                        stock_val = mongo_product.get("stockQuantity", 0)
+                    current_stock = float(stock_val or 0)
+                    if current_stock < item["quantity"]:
+                        conn.close()
+                        return jsonify({
+                            "ok": False, 
+                            "message": f"Insufficient stock for {item['name']}. Available: {current_stock}, Requested: {item['quantity']}"
+                        }), 400
+            except Exception as e:
+                print(f"Warning: Could not check stock for product {item['product_id']}: {e}")
     
     # Create the order
     conn.execute(
@@ -975,69 +1035,27 @@ def create_order():
     )
     conn.commit()
     
-    # Deduct stock from MongoDB products
+    # Deduct stock safely from MongoDB products and SQLite
     for item in items_with_details:
         try:
-            # Decrement stock quantity in MongoDB, handling multiple id formats.
-            result = None
-            for candidate in _product_id_candidates(item["product_id"]):
-                query = {"_id": candidate} if isinstance(candidate, ObjectId) else {"id": candidate}
-                result = products_col.update_one(
-                    query,
-                    {
-                        "$inc": {
-                            "stock_quantity": -item["quantity"],
-                            "stockQuantity": -item["quantity"],
-                            "stock": -item["quantity"]
-                        },
-                        "$set": {"updated_at": datetime.now()}
-                    }
+            # Safe deduction in MongoDB
+            if products_col:
+                _deduct_product_stock_safe(
+                    products_col,
+                    item["product_id"],
+                    item["quantity"],
+                    fallback_name=item.get("name"),
+                    fallback_sku=item.get("sku")
                 )
-                if result.modified_count > 0:
-                    break
-            if result and result.modified_count > 0:
-                print(f"[OK] Stock updated for product {item['product_id']}: -{item['quantity']}")
-            else:
-                # Fallback matching by name or SKU
-                fallback_q = None
-                if item.get("sku"):
-                    fallback_q = {"sku": item["sku"]}
-                elif item.get("name"):
-                    fallback_q = {"name": item["name"]}
-                if fallback_q:
-                    f_res = products_col.update_one(
-                        fallback_q,
-                        {
-                            "$inc": {
-                                "stock_quantity": -item["quantity"],
-                                "stockQuantity": -item["quantity"],
-                                "stock": -item["quantity"]
-                            },
-                            "$set": {"updated_at": datetime.now()}
-                        }
-                    )
-                    if f_res and f_res.modified_count > 0:
-                        print(f"[OK] Stock updated by name/sku for {item.get('name')}: -{item['quantity']}")
-
-            # Guard against negative stock
-            products_col.update_many(
-                {"$or": [{"stockQuantity": {"$lt": 0}}, {"stock_quantity": {"$lt": 0}}, {"stock": {"$lt": 0}}]},
-                {"$set": {"stockQuantity": 0, "stock_quantity": 0, "stock": 0}}
-            )
             
-            # Also update SQLite for consistency
-            sqlite_updated = False
+            # Safe deduction in SQLite
             for candidate in _product_id_candidates(item["product_id"]):
                 if isinstance(candidate, int):
-                    update_result = conn.execute(
-                        "UPDATE products SET stock = stock - ? WHERE id = ?",
+                    conn.execute(
+                        "UPDATE products SET stock = MAX(0, stock - ?) WHERE id = ?",
                         (item["quantity"], candidate)
                     )
-                    if update_result.rowcount > 0:
-                        sqlite_updated = True
-                        break
-            if not sqlite_updated:
-                print(f"Warning: SQLite stock update skipped for product {item['product_id']}")
+                    break
             conn.commit()
         except Exception as e:
             print(f"Warning: Could not update stock for product {item['product_id']}: {e}")
@@ -2545,37 +2563,18 @@ def create_order_mongo():
         
         result = orders_col.insert_one(order_doc)
         
-        # Deduct stock from MongoDB products
+        # Deduct stock safely from MongoDB products
         for item in items:
             product_id = item.get("product_id") or item.get("id")
             quantity = float(item.get("quantity", 1) or 1)
-            
             try:
-                # Try both _id and id fields
-                inc_fields = {
-                    "stock_quantity": -quantity,
-                    "stockQuantity": -quantity,
-                    "stock": -quantity
-                }
-                try:
-                    update_result = products_col.update_one(
-                        {"_id": ObjectId(product_id)},
-                        {
-                            "$inc": inc_fields,
-                            "$set": {"updated_at": datetime.now()}
-                        }
-                    )
-                except:
-                    update_result = products_col.update_one(
-                        {"id": product_id},
-                        {
-                            "$inc": inc_fields,
-                            "$set": {"updated_at": datetime.now()}
-                        }
-                    )
-                
-                if update_result.modified_count > 0:
-                    print(f"[OK] Stock updated for product {product_id}: -{quantity}")
+                _deduct_product_stock_safe(
+                    products_col,
+                    product_id,
+                    quantity,
+                    fallback_name=item.get("name"),
+                    fallback_sku=item.get("sku")
+                )
             except Exception as e:
                 print(f"Warning: Could not update stock for product {product_id}: {e}")
         
@@ -3513,6 +3512,82 @@ def nlp_product_info():
 def nlp_suggestions():
     """Returns suggested natural language queries for frontend search bar"""
     return jsonify({"success": True, "suggestions": get_preset_suggestions()}), 200
+
+
+# ============= 500+ RECIPE NLP ENDPOINTS =============
+
+@app.get("/api/nlp/recipes")
+@app.get("/api/nlp/recipes/search")
+def nlp_search_recipes():
+    """Search among 500+ recipes by query, cuisine, or keyword"""
+    query = request.args.get("q", "").strip()
+    cuisine = request.args.get("cuisine", "").strip() or None
+    try:
+        limit = min(50, max(1, int(request.args.get("limit", 12))))
+    except ValueError:
+        limit = 12
+
+    results = RecipeKnowledgeEngine.search_recipes(query, limit=limit, cuisine=cuisine)
+    return jsonify({
+        "ok": True,
+        "query": query,
+        "cuisine": cuisine,
+        "count": len(results),
+        "recipes": results
+    })
+
+
+@app.get("/api/nlp/recipes/popular")
+def nlp_popular_recipes():
+    """Get popular / featured recipes for quick selection"""
+    recipes = RecipeKnowledgeEngine.get_popular_recipes(limit=10)
+    return jsonify({
+        "ok": True,
+        "count": len(recipes),
+        "recipes": recipes
+    })
+
+
+@app.get("/api/nlp/recipes/<recipe_id>")
+def nlp_get_recipe_details(recipe_id):
+    """Get specific recipe details with matched products from store inventory"""
+    try:
+        products_col = MongoDBCollections.get_collection("products")
+    except Exception:
+        products_col = None
+
+    recipes = RecipeKnowledgeEngine.load_recipes()
+    recipe = next((r for r in recipes if r["id"] == recipe_id), None)
+    if not recipe:
+        recipe = RecipeKnowledgeEngine.find_recipe(recipe_id)
+
+    if not recipe:
+        return jsonify({"ok": False, "message": "Recipe not found"}), 404
+
+    enriched, matched_products = RecipeKnowledgeEngine.match_recipe_to_inventory(recipe, products_col)
+    return jsonify({
+        "ok": True,
+        "recipe": enriched,
+        "matchedProducts": matched_products
+    })
+
+
+@app.route("/api/mongo/products/restore-stock", methods=["GET", "POST"])
+def restore_products_stock():
+    """Utility endpoint to restore healthy stock quantities to all products"""
+    try:
+        products_col = MongoDBCollections.get_collection("products")
+        result = products_col.update_many(
+            {"$or": [{"stock_quantity": {"$lte": 0}}, {"stock": {"$lte": 0}}, {"stockQuantity": {"$lte": 0}}]},
+            {"$set": {"stock_quantity": 100, "stock": 100, "stockQuantity": 100, "updated_at": datetime.now(timezone.utc)}}
+        )
+        return jsonify({
+            "ok": True,
+            "message": "Healthy stock restored to products",
+            "modifiedCount": result.modified_count
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)}), 500
 
 
 # Ensure tables exist for both local runs and production WSGI servers (e.g., gunicorn).
