@@ -187,12 +187,38 @@ function Cart() {
                   {items.map((i, index) => (
                       <div key={index} style={{ background: "white", padding: "24px", borderRadius: "16px", boxShadow: "0 4px 16px rgba(0,0,0,0.08)", border: "1px solid #e5e7eb", display: "grid", gridTemplateColumns: "160px 1fr", gap: "24px", alignItems: "start", transition: "all 0.3s ease" }}>
                         {/* Product Image */}
-                        <div style={{ background: "#f9fafb", width: "160px", height: "160px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
-                          {i.image && i.image.startsWith('data:image') ? (
-                            <img src={i.image} alt={i.name || "Product"} style={{ width: "100%", height: "100%", objectFit: "contain", padding: "10px" }} />
-                          ) : (
-                            <span style={{ fontSize: "64px" }}>{i.image || "🛒"}</span>
-                          )}
+                        <div style={{ background: "#f9fafb", width: "160px", height: "160px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0, border: "1px solid #f1f5f9" }}>
+                          {(() => {
+                            const imgSrc = String(i.image || i.imageUrl || i.image_url || "").trim();
+                            const isUrl =
+                              imgSrc.startsWith("http://") ||
+                              imgSrc.startsWith("https://") ||
+                              imgSrc.startsWith("data:image") ||
+                              imgSrc.startsWith("/");
+                            if (isUrl) {
+                              return (
+                                <img
+                                  src={imgSrc}
+                                  alt={i.name || "Product"}
+                                  style={{ width: "100%", height: "100%", objectFit: "contain", padding: "10px" }}
+                                  onError={(e) => {
+                                    e.currentTarget.onerror = null;
+                                    e.currentTarget.src = "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=60";
+                                  }}
+                                />
+                              );
+                            }
+                            if (imgSrc && imgSrc.length <= 4) {
+                              return <span style={{ fontSize: "64px" }}>{imgSrc}</span>;
+                            }
+                            return (
+                              <img
+                                src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=60"
+                                alt={i.name || "Product"}
+                                style={{ width: "100%", height: "100%", objectFit: "contain", padding: "10px" }}
+                              />
+                            );
+                          })()}
                         </div>
 
                         {/* Product Details */}

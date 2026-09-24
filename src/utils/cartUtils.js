@@ -90,7 +90,7 @@ const normalizeCartItem = (item) => ({
   price_per_unit: Number(item?.price_per_unit ?? item?.price) || 0,
   unit_type: item?.unit_type || "unit",
   is_loose_item: Boolean(item?.is_loose_item),
-  image: sanitizeCartImage(item?.image),
+  image: sanitizeCartImage(item?.image || item?.imageUrl || item?.image_url),
   location: item?.location || "",
   quantity: sanitizeQuantity(item?.quantity, Boolean(item?.is_loose_item), item?.unit_type || "unit"),
 });
