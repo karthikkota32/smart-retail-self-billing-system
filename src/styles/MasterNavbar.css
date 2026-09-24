@@ -16,20 +16,21 @@
   max-width: 100%;
   width: 100%;
   margin: 0;
-  padding: 8px 12px;
+  padding: 8px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 10px;
+  flex-wrap: nowrap;
   box-sizing: border-box;
 }
 
 .navbar-brand {
   cursor: pointer;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: bold;
   white-space: nowrap;
+  flex-shrink: 0;
   padding: 0;
   margin: 0;
 }
@@ -63,13 +64,19 @@
 
 .navbar-menu {
   display: flex;
-  gap: 18px;
+  gap: 8px;
   flex: 1;
   justify-content: center;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
   margin: 0;
   padding: 0;
+}
+
+.navbar-menu::-webkit-scrollbar {
+  display: none;
 }
 
 @media (max-width: 768px) {
@@ -110,8 +117,9 @@
 
 .nav-links {
   display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-wrap: nowrap;
+  align-items: center;
   justify-content: center;
   margin: 0;
   padding: 0;
@@ -137,25 +145,27 @@
   border: none;
   color: white;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 6px 10px;
-  border-radius: 4px;
-  transition: all 0.3s ease;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
   white-space: nowrap;
+  flex-shrink: 0;
   margin: 0;
 }
 
 .nav-link:hover {
   background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .navbar-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
   margin: 0;
   padding: 0;
 }
