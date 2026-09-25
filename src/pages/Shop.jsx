@@ -5,6 +5,7 @@ import { useRealtimeProducts } from "../hooks/useRealtimeProducts";
 import { StockStatusBadge, StockIndicator, AddToCartButton } from "../components/StockStatus";
 import CartNotification from "../components/CartNotification";
 import SmartNlpSearch from "../components/SmartNlpSearch";
+import StoreDijkstraNavigator, { resolveShelfForItem } from "../components/StoreDijkstraNavigator";
 import { readCartItems, addItemToCart, normalizeProductId, getQuantityStep, sanitizeQuantity } from "../utils/cartUtils";
 import { useLanguage } from "../context/LanguageContext";
 import "./Shop.css";
@@ -42,6 +43,8 @@ function Shop() {
   const [notificationMessage, setNotificationMessage] = useState("");
   const [notificationType, setNotificationType] = useState("success");
   const [looseQuantities, setLooseQuantities] = useState({});
+  const [showDijkstraMap, setShowDijkstraMap] = useState(true);
+  const [targetShelfForNav, setTargetShelfForNav] = useState("A4");
 
   // Use live products data
   useEffect(() => {
@@ -250,22 +253,21 @@ function Shop() {
 
       <div style={{ maxWidth: "1400px", margin: "20px auto 0 auto", padding: "0 15px" }}>
         <SmartNlpSearch onAddToCart={addToCart} />
+        {showDijkstraMap && (
+          <StoreDijkstraNavigator cartItems={cart} initialTargetShelf={targetShelfForNav} />
+        )}
       </div>
 
       <div className="shop-toolbar">
         <div className="shop-toolbar-grid">
-          <div className="shop-toolbar-row">
-            <input
-              className="shop-search-input"
-              placeholder={t("shop.search_placeholder", "Search groceries...")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="shop-toolbar-row" style={{ justifyContent: "flex-end" }}>
             <button
-              className="shop-toolbar-btn"
-              onClick={() => setSearch("")}
+              className="shop-toolbar-btn shop-toolbar-btn-primary"
+              style={{ background: showDijkstraMap ? "#059669" : "#4f46e5", color: "white" }}
+              onClick={() => setShowDijkstraMap(!showDijkstraMap)}
+              title="Toggle In-Store Dijkstra Shortest-Path Navigation Map"
             >
-              {t("common.cancel", "Clear")}
+              🧭 {showDijkstraMap ? "Hide Store Map (Dijkstra)" : "Show Store Map (Dijkstra)"}
             </button>
             <button
               className="shop-toolbar-btn shop-toolbar-btn-primary"
@@ -506,6 +508,22 @@ function Shop() {
                     <div style={{ flex: 1 }}>
                       <AddToCartButton product={item} onClick={(e) => addToCart(item, e)} />
                     </div>
+
+                    {/* Dijkstra Locate Shelf Button */}
+                    <button
+                      className="btn-view"
+                      style={{ background: "#eef2ff", color: "#4338ca", borderColor: "#c7d2fe" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const shelf = resolveShelfForItem(item);
+                        setTargetShelfForNav(shelf);
+                        setShowDijkstraMap(true);
+                        window.scrollTo({ top: 180, behavior: "smooth" });
+                      }}
+                      title={`Plot Dijkstra shortest path to Shelf ${resolveShelfForItem(item)}`}
+                    >
+                      🧭 {resolveShelfForItem(item)}
+                    </button>
 
                     {/* View Product Details Button */}
                     <button

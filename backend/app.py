@@ -3590,6 +3590,57 @@ def restore_products_stock():
         return jsonify({"ok": False, "message": str(e)}), 500
 
 
+# ============= DIJKSTRA IN-STORE NAVIGATION ROUTES =============
+try:
+    from navigation import get_layout_data, shortest_path as dijkstra_shortest_path, build_route as dijkstra_build_route
+    from layout import ENTRANCE as NAV_ENTRANCE, BILLING as NAV_BILLING
+except ImportError:
+    from backend.navigation import get_layout_data, shortest_path as dijkstra_shortest_path, build_route as dijkstra_build_route
+    from backend.layout import ENTRANCE as NAV_ENTRANCE, BILLING as NAV_BILLING
+
+
+@app.get("/api/navigation/layout")
+def api_navigation_layout():
+    """Return store corridor graph layout (V=85, E=88), nodes, edges, and entrance heatmap."""
+    return jsonify(get_layout_data())
+
+
+@app.route("/api/navigation/shortest-path", methods=["GET", "POST"])
+def api_navigation_shortest_path():
+    """Run single-source Dijkstra between source and target nodes."""
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        source = str(data.get("source") or NAV_ENTRANCE).strip()
+        target = str(data.get("target") or NAV_BILLING).strip()
+    else:
+        source = str(request.args.get("source") or NAV_ENTRANCE).strip()
+        target = str(request.args.get("target") or NAV_BILLING).strip()
+
+    dist, path = dijkstra_shortest_path(source, target)
+    if dist == float("inf"):
+        return jsonify({"ok": False, "success": False, "message": f"No path between {source} and {target}"}), 404
+
+    return jsonify({
+        "ok": True,
+        "success": True,
+        "source": source,
+        "target": target,
+        "distance_m": dist,
+        "path": path,
+    })
+
+
+@app.post("/api/navigation/route")
+def api_navigation_route():
+    """Compute multi-item route using Dijkstra + Nearest-Neighbour + 2-Opt."""
+    data = request.get_json(silent=True) or {}
+    items = data.get("items") or []
+    start = str(data.get("start") or NAV_ENTRANCE).strip()
+    end = str(data.get("end") or NAV_BILLING).strip()
+    result = dijkstra_build_route(items, start=start, end=end)
+    return jsonify(result)
+
+
 # Ensure tables exist for both local runs and production WSGI servers (e.g., gunicorn).
 _init_db()
 

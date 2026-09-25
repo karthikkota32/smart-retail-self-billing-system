@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import MasterNavbar from "../components/MasterNavbar";
 import CartNotification from "../components/CartNotification";
+import StoreDijkstraNavigator from "../components/StoreDijkstraNavigator";
 import { readCartItems, writeCartItems, getQuantityStep, sanitizeQuantity } from "../utils/cartUtils";
 import { createOrder } from "../services/api";
 import { useLanguage } from "../context/LanguageContext";
@@ -180,7 +181,9 @@ function Cart() {
 
           {/* Cart Items Grid Layout */}
           {items.length > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 420px", gap: "32px", alignItems: "start" }}>
+            <>
+              <StoreDijkstraNavigator cartItems={items} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 420px", gap: "32px", alignItems: "start" }}>
               {/* Left: Cart Items */}
               <div>
                 <div style={{ display: "grid", gap: "20px" }}>
@@ -424,7 +427,8 @@ function Cart() {
                   </div>
                 </div>
               </div>
-            </div>
+              </div>
+            </>
           )}
         </div>
       </div>
