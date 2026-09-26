@@ -1,56 +1,71 @@
 /* ===================================================
-   Smart NLP Search Component Styles
+   Smart NLP Search Component Styles (Clean Modern UI)
    =================================================== */
 
 .nlp-search-container {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  margin-bottom: 28px;
-  border: 1px solid #e2e8f0;
-  transition: all 0.3s ease;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 28px 32px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.03);
+  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+  transition: box-shadow 0.2s ease;
 }
 
 .nlp-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+  align-items: flex-start;
+  margin-bottom: 18px;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
-.nlp-title-wrap {
+.nlp-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nlp-title-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .nlp-badge {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
+  background: #f3e8ff;
+  color: #6d28d9;
+  border: 1px solid #e9d5ff;
   font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 4px 10px;
-  border-radius: 20px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  padding: 2px 9px;
+  border-radius: 999px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  line-height: 1.4;
+}
+
+.nlp-badge-icon {
+  font-size: 11px;
 }
 
 .nlp-title {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 700;
-  color: #1e293b;
+  color: #111827;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
   margin: 0;
 }
 
 .nlp-subtitle {
-  font-size: 13px;
-  color: #64748b;
+  font-size: 13.5px;
+  color: #6b7280;
+  line-height: 1.4;
   margin: 0;
 }
 
@@ -58,8 +73,9 @@
 .nlp-form {
   position: relative;
   display: flex;
+  align-items: center;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .nlp-input-wrapper {
@@ -71,83 +87,94 @@
 
 .nlp-search-icon {
   position: absolute;
-  left: 16px;
-  font-size: 18px;
-  color: #94a3b8;
+  left: 14px;
+  color: #9ca3af;
   pointer-events: none;
+  flex-shrink: 0;
 }
 
 .nlp-input {
   width: 100%;
-  padding: 14px 44px 14px 46px;
-  font-size: 15px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  height: 44px;
+  padding: 0 38px 0 42px;
+  font-size: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
   outline: none;
-  transition: all 0.25s ease;
-  background: #f8fafc;
-  color: #1e293b;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: #ffffff;
+  color: #111827;
+}
+
+.nlp-input::placeholder {
+  color: #9ca3af;
 }
 
 .nlp-input:focus {
-  border-color: #6366f1;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+  border-color: #4f46e5;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 .nlp-clear-btn {
   position: absolute;
-  right: 14px;
+  right: 12px;
   background: none;
   border: none;
   font-size: 18px;
-  color: #94a3b8;
+  color: #9ca3af;
   cursor: pointer;
-  padding: 4px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
 }
 
 .nlp-clear-btn:hover {
-  color: #475569;
-  background: #f1f5f9;
+  color: #374151;
+  background: #f3f4f6;
 }
 
 .nlp-submit-btn {
-  padding: 14px 24px;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 15px;
+  height: 44px;
+  padding: 0 20px;
+  background: #4f46e5;
+  color: #ffffff;
+  border: 1px solid #4f46e5;
+  border-radius: 10px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   white-space: nowrap;
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.15);
 }
 
 .nlp-submit-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #4f46e5, #4338ca);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35);
+  background: #4338ca;
+  border-color: #4338ca;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
 }
 
 .nlp-submit-btn:disabled {
-  opacity: 0.65;
+  background: #9ca3af;
+  border-color: #9ca3af;
+  opacity: 0.6;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* Spinner */
 .nlp-spinner {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
@@ -164,36 +191,55 @@
 .nlp-suggestions-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding-top: 4px;
+  gap: 10px;
+  padding-top: 2px;
+  min-width: 0;
 }
 
 .nlp-suggestions-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #6b7280;
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.nlp-chips-scroll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.nlp-chips-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .nlp-chip {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #e2e8f0;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   user-select: none;
 }
 
 .nlp-chip:hover {
-  background: #ede9fe;
+  background: #eef2ff;
   color: #4f46e5;
   border-color: #c7d2fe;
-  transform: translateY(-1px);
 }
 
 /* AI Understanding Banner */

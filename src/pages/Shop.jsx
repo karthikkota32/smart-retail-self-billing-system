@@ -244,44 +244,51 @@ function Shop() {
     <div
       className="shop-page"
       style={{
-        background: "#eaeded",
+        background: "#f8fafc",
         minHeight: "100vh",
         width: "100%"
       }}
     >
       <MasterNavbar />
 
-      <div style={{ maxWidth: "1400px", margin: "20px auto 0 auto", padding: "0 15px" }}>
+      <div style={{ maxWidth: "1400px", margin: "24px auto 0 auto", padding: "0 15px" }}>
         <SmartNlpSearch onAddToCart={addToCart} />
       </div>
 
       <div className="shop-toolbar">
-        <div className="shop-toolbar-grid">
-          <div className="shop-toolbar-row" style={{ justifyContent: "flex-end" }}>
+        <div className="shop-toolbar-inner">
+          <div className="shop-summary">
+            <span className="shop-summary-cart">
+              🛒 <strong>Cart: {cart.length} {cart.length === 1 ? "item" : "items"}</strong>
+            </span>
+            <span className="shop-summary-divider">·</span>
+            <span className="shop-summary-count">
+              Showing {sortedProducts.length} products
+            </span>
+          </div>
+
+          <div className="shop-toolbar-row">
             <button
-              className="shop-toolbar-btn shop-toolbar-btn-primary"
+              className="shop-toolbar-btn"
               onClick={refreshProducts}
               title="Refresh latest stock status from server"
             >
-              🔄 {t("common.refresh", "Refresh")}
+              ↻ {t("common.refresh", "Refresh")}
             </button>
             <button
-              className="shop-toolbar-btn shop-toolbar-btn-secondary"
+              className="shop-toolbar-btn"
               onClick={() => setShowFilters(true)}
             >
-              {t("common.filter", "Filters")}
+              ⚙ {t("common.filter", "Filters")}
             </button>
             <button
-              className="shop-toolbar-btn shop-toolbar-btn-warning"
+              className="shop-toolbar-btn"
               onClick={() => setShowHelp(true)}
             >
-              Help
+              ? Help
             </button>
           </div>
         </div>
-        <p className="shop-summary">
-          🛒 {t("nav.cart", "Cart")} ({cart.length}) | {t("dashboard.cart_items", "Showing")} {sortedProducts.length} {t("dashboard.cart_items", "items")}
-        </p>
       </div>
 
       {recentlyViewed.length > 0 && (

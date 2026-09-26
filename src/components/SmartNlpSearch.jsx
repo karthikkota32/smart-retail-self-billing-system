@@ -167,18 +167,21 @@ export default function SmartNlpSearch({ onAddToCart, onSearchApplied }) {
     <div className="nlp-search-container">
       {/* Header */}
       <div className="nlp-header">
-        <div className="nlp-title-wrap">
-          <span className="nlp-badge">✨ AI-Powered</span>
-          <div>
+        <div className="nlp-header-left">
+          <div className="nlp-title-row">
             <h2 className="nlp-title">Smart Natural Language Search</h2>
-            <p className="nlp-subtitle">
-              Ask in plain English: recipes ("Biryani"), prices, brands, or dietary choices
-            </p>
+            <span className="nlp-badge">
+              <span className="nlp-badge-icon">✨</span>
+              AI-Powered
+            </span>
           </div>
+          <p className="nlp-subtitle">
+            Ask in plain English: recipes (&ldquo;Biryani&rdquo;), prices, brands, or dietary choices
+          </p>
         </div>
         {nlpData && (
           <button className="nlp-reset-link" onClick={handleClear}>
-            ✕ Clear AI Search
+            ✕ Clear Search
           </button>
         )}
       </div>
@@ -192,7 +195,20 @@ export default function SmartNlpSearch({ onAddToCart, onSearchApplied }) {
         }}
       >
         <div className="nlp-input-wrapper">
-          <span className="nlp-search-icon">🔍</span>
+          <svg
+            className="nlp-search-icon"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
           <input
             type="text"
             className="nlp-input"
@@ -201,7 +217,10 @@ export default function SmartNlpSearch({ onAddToCart, onSearchApplied }) {
               setQuery(e.target.value);
               if (error) setError(null);
             }}
-            placeholder={t("nlp.placeholder", "Search recipes & products... e.g. 'Biryani ingredients', 'How to make pasta'")}
+            placeholder={t(
+              "nlp.placeholder",
+              "Search recipes & products... e.g. 'Biryani ingredients', 'Biscuits under ₹50'"
+            )}
             disabled={loading}
           />
           {query && (
@@ -225,7 +244,7 @@ export default function SmartNlpSearch({ onAddToCart, onSearchApplied }) {
           ) : (
             <>
               <span>{t("nlp.search_btn", "Ask AI")}</span>
-              <span>→</span>
+              <span aria-hidden="true">→</span>
             </>
           )}
         </button>
@@ -234,17 +253,19 @@ export default function SmartNlpSearch({ onAddToCart, onSearchApplied }) {
       {/* Example Suggestion Chips */}
       <div className="nlp-suggestions-bar">
         <span className="nlp-suggestions-label">{t("nlp.examples_label", "Try asking:")}</span>
-        {suggestions.slice(0, 7).map((item, index) => (
-          <button
-            key={index}
-            type="button"
-            className="nlp-chip"
-            onClick={() => handleChipClick(item.query)}
-            disabled={loading}
-          >
-            {item.query}
-          </button>
-        ))}
+        <div className="nlp-chips-scroll">
+          {suggestions.slice(0, 7).map((item, index) => (
+            <button
+              key={index}
+              type="button"
+              className="nlp-chip"
+              onClick={() => handleChipClick(item.query)}
+              disabled={loading}
+            >
+              {item.query}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Error Message */}
