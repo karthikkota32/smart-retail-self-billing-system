@@ -182,7 +182,6 @@ function Cart() {
           {/* Cart Items Grid Layout */}
           {items.length > 0 && (
             <>
-              <StoreDijkstraNavigator cartItems={items} />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 420px", gap: "32px", alignItems: "start" }}>
               {/* Left: Cart Items */}
               <div>

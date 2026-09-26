@@ -253,22 +253,11 @@ function Shop() {
 
       <div style={{ maxWidth: "1400px", margin: "20px auto 0 auto", padding: "0 15px" }}>
         <SmartNlpSearch onAddToCart={addToCart} />
-        {showDijkstraMap && (
-          <StoreDijkstraNavigator cartItems={cart} initialTargetShelf={targetShelfForNav} />
-        )}
       </div>
 
       <div className="shop-toolbar">
         <div className="shop-toolbar-grid">
           <div className="shop-toolbar-row" style={{ justifyContent: "flex-end" }}>
-            <button
-              className="shop-toolbar-btn shop-toolbar-btn-primary"
-              style={{ background: showDijkstraMap ? "#059669" : "#4f46e5", color: "white" }}
-              onClick={() => setShowDijkstraMap(!showDijkstraMap)}
-              title="Toggle In-Store Dijkstra Shortest-Path Navigation Map"
-            >
-              🧭 {showDijkstraMap ? "Hide Store Map (Dijkstra)" : "Show Store Map (Dijkstra)"}
-            </button>
             <button
               className="shop-toolbar-btn shop-toolbar-btn-primary"
               onClick={refreshProducts}
@@ -509,22 +498,6 @@ function Shop() {
                       <AddToCartButton product={item} onClick={(e) => addToCart(item, e)} />
                     </div>
 
-                    {/* Dijkstra Locate Shelf Button */}
-                    <button
-                      className="btn-view"
-                      style={{ background: "#eef2ff", color: "#4338ca", borderColor: "#c7d2fe" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const shelf = resolveShelfForItem(item);
-                        setTargetShelfForNav(shelf);
-                        setShowDijkstraMap(true);
-                        window.scrollTo({ top: 180, behavior: "smooth" });
-                      }}
-                      title={`Plot Dijkstra shortest path to Shelf ${resolveShelfForItem(item)}`}
-                    >
-                      🧭 {resolveShelfForItem(item)}
-                    </button>
-
                     {/* View Product Details Button */}
                     <button
                       className="btn-view"
@@ -735,6 +708,8 @@ function Shop() {
                 📖 Full Details
               </button>
             </div>
+
+            <StoreDijkstraNavigator product={quickViewItem} />
           </div>
         </div>
       )}

@@ -10,6 +10,7 @@ import {
   removeFromWishlist,
 } from "../services/api";
 import CartNotification from "../components/CartNotification";
+import StoreDijkstraNavigator, { resolveShelfForItem } from "../components/StoreDijkstraNavigator";
 import {
   readCartItems,
   addItemToCart,
@@ -37,7 +38,7 @@ function ProductDetails() {
   const [notificationMessage, setNotificationMessage] = useState("");
   const [notificationType, setNotificationType] = useState("success");
   const [activeTab, setActiveTab] = useState("overview"); // overview, nutrition, navigation, reviews
-  const [showPathfindingMap, setShowPathfindingMap] = useState(false);
+  const [showPathfindingMap, setShowPathfindingMap] = useState(true);
 
   // Review form
   const [reviewRating, setReviewRating] = useState(5);
@@ -419,36 +420,16 @@ function ProductDetails() {
               <div className="location-strip-icon">📍</div>
               <div className="location-strip-content">
                 <strong>In-Store Shelf Location:</strong>
-                <span>{product.locationString}</span>
+                <span>Shelf {resolveShelfForItem(product)} ({product.locationString})</span>
               </div>
               <button className="btn-view-map-pill">
                 {showPathfindingMap ? "Hide Map ▲" : "Find on Map 🗺️"}
               </button>
             </div>
 
-            {/* Creative Pathfinding Route Visualization */}
+            {/* Dijkstra Shortest-Path Route (User -> Selected Product) */}
             {showPathfindingMap && (
-              <div className="interactive-store-map-card">
-                <div className="map-card-header">
-                  <h4>🧭 Smart Store Navigation Route</h4>
-                  <span className="map-badge">Live Pathfinding</span>
-                </div>
-                <div className="store-aisle-diagram">
-                  <div className="diagram-point entrance">🚪 Store Entrance</div>
-                  <div className="diagram-path-arrow">➔ Walk straight 12m</div>
-                  <div className="diagram-point junction">
-                    Turn into <strong>{product.location?.aisle || "Aisle D1"}</strong>
-                  </div>
-                  <div className="diagram-path-arrow">➔ 4m on right</div>
-                  <div className="diagram-point destination">
-                    🎯 <strong>Shelf #{product.location?.shelf || "2"}</strong>
-                  </div>
-                </div>
-                <p className="map-instruction-text">
-                  Item is positioned at eye-level on <strong>Shelf {product.location?.shelf || "2"}</strong> of Section{" "}
-                  <strong>{product.location?.aisle || "D1"}</strong>. Use barcode scanner in self-billing app to add directly to invoice.
-                </p>
-              </div>
+              <StoreDijkstraNavigator product={product} />
             )}
           </div>
 
@@ -682,41 +663,11 @@ function ProductDetails() {
             {/* TAB 3: STORE NAVIGATION */}
             {activeTab === "navigation" && (
               <div className="tab-pane-content">
-                <h3 className="section-heading">Smart Store Navigation & In-Store Coordinates</h3>
+                <h3 className="section-heading">Smart Store Navigation (Dijkstra Shortest Path)</h3>
                 <p className="tab-lead-text">
-                  This product's precise location is integrated with the Store Navigation module for real-time customer pathfinding.
+                  Shortest walkable route from your current store position to <strong>{product.name}</strong> (Shelf {resolveShelfForItem(product)}).
                 </p>
-
-                <div className="navigation-full-card">
-                  <div className="nav-callout-banner">
-                    <div className="nav-big-icon">🛒</div>
-                    <div>
-                      <h3>Located in {product.locationString}</h3>
-                      <p>Section: <strong>{product.category} Department</strong></p>
-                    </div>
-                  </div>
-
-                  <div className="nav-steps-list">
-                    <div className="nav-step-item">
-                      <div className="step-num">1</div>
-                      <div className="step-desc">
-                        Enter via Main Supermarket Turnstile and grab a Smart Shopping Cart.
-                      </div>
-                    </div>
-                    <div className="nav-step-item">
-                      <div className="step-num">2</div>
-                      <div className="step-desc">
-                        Walk down Central Concourse towards <strong>Aisle {product.location?.aisle || "D1"}</strong>.
-                      </div>
-                    </div>
-                    <div className="nav-step-item">
-                      <div className="step-num">3</div>
-                      <div className="step-desc">
-                        Look on <strong>Shelf Level {product.location?.shelf || "2"}</strong> under Barcode <code>{product.sku}</code>.
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <StoreDijkstraNavigator product={product} />
               </div>
             )}
 
