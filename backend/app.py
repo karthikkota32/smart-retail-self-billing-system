@@ -44,7 +44,12 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 
 
 def _is_valid_phone(phone):
-    return phone.isdigit() and len(phone) == 10
+    if not phone:
+        return False
+    val = str(phone).strip()
+    if val.lower() in ["guest", "admin"]:
+        return True
+    return val.isdigit() and len(val) == 10
 
 
 def _is_admin(username_or_role):
@@ -1000,7 +1005,7 @@ def create_order():
         })
     
     # Check stock availability in MongoDB before creating order
-    if products_col:
+    if products_col is not None:
         for item in items_with_details:
             try:
                 mongo_product = None
@@ -1039,7 +1044,7 @@ def create_order():
     for item in items_with_details:
         try:
             # Safe deduction in MongoDB
-            if products_col:
+            if products_col is not None:
                 _deduct_product_stock_safe(
                     products_col,
                     item["product_id"],
@@ -1064,6 +1069,23 @@ def create_order():
     order_data = conn.execute("SELECT last_insert_rowid() as id, datetime('now') as date").fetchone()
     order_id = order_data["id"]
     order_date = order_data["date"]
+
+    # Also sync order to MongoDB orders collection if MongoDB is available
+    try:
+        orders_col = MongoDBCollections.get_collection("orders")
+        if orders_col is not None:
+            orders_col.insert_one({
+                "sqlite_order_id": order_id,
+                "phone": phone,
+                "items": items_with_details,
+                "total": total,
+                "total_amount": total,
+                "payment_mode": payment_mode,
+                "status": "confirmed",
+                "created_at": datetime.now(timezone.utc)
+            })
+    except Exception as e:
+        print(f"[WARN] Could not record order in MongoDB: {e}")
     
     # Get user email to send order confirmation
     user = conn.execute("SELECT email FROM users WHERE phone = ?", (phone,)).fetchone()

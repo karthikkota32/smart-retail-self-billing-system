@@ -87,7 +87,7 @@ function Cart() {
       return;
     }
 
-    const userPhone = localStorage.getItem("userPhone") || "guest";
+    const userPhone = localStorage.getItem("userPhone") || localStorage.getItem("phone") || "guest";
     try {
       const orderItems = items.map((item) => ({
         name: item.name,

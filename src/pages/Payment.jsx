@@ -7,8 +7,8 @@ import "../styles/Payment.css";
 
 function Payment() {
   const navigate = useNavigate();
-  const userPhone = localStorage.getItem("userPhone");
-  const username = localStorage.getItem("username");
+  const userPhone = localStorage.getItem("userPhone") || localStorage.getItem("phone");
+  const username = localStorage.getItem("username") || localStorage.getItem("userName") || localStorage.getItem("name") || "User";
   const [paymentMode, setPaymentMode] = useState("UPI");
   const [isProcessing, setIsProcessing] = useState(false);
   const [cart, setCart] = useState([]);
@@ -92,7 +92,7 @@ function Payment() {
         paymentMode: paymentMode
       };
 
-      if (!username) {
+      if (!userPhone) {
         setNotificationMessage("Session expired. Please login again.");
         setNotificationType("error");
         setShowNotification(true);
@@ -107,6 +107,22 @@ function Payment() {
         localStorage.removeItem(`cart_${userPhone}`);
         localStorage.removeItem(`appliedCoupons_${userPhone}`);
         
+        // Save local history for immediate display on History page
+        const history = JSON.parse(localStorage.getItem(`history_${userPhone}`)) || [];
+        const newBill = {
+          id: res.orderId || Date.now(),
+          total: total,
+          originalTotal: subtotal,
+          discountAmount: discount,
+          appliedCoupons: appliedCoupon ? [appliedCoupon] : [],
+          items: orderData.items,
+          mode: paymentMode,
+          date: new Date().toLocaleDateString(),
+          status: "confirmed",
+          statusUpdatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(`history_${userPhone}`, JSON.stringify([...history, newBill]));
+
         // Dispatch update event
         window.dispatchEvent(new Event("appUpdate"));
         window.dispatchEvent(new Event("stockUpdate"));
