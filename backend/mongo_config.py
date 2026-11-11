@@ -7,6 +7,15 @@ import os
 
 from dotenv import load_dotenv
 from pymongo import MongoClient
+import dns.resolver
+
+# Ensure robust DNS resolution for mongodb+srv:// clusters
+try:
+    _res = dns.resolver.Resolver(configure=True)
+    _res.nameservers = ["8.8.8.8", "1.1.1.1"] + [ns for ns in _res.nameservers if ns not in ["8.8.8.8", "1.1.1.1"]]
+    dns.resolver.default_resolver = _res
+except Exception:
+    pass
 
 load_dotenv()
 
